@@ -1,0 +1,92 @@
+server:
+  port: 8081
+
+spring:
+  profiles:
+    active: dev
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/healthcare_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false          # suppresses open-in-view warning
+    properties:
+      hibernate:
+        format_sql: true
+        # dialect removed — auto-detected from MySQL driver (no deprecation warning)
+        jdbc:
+          time_zone: UTC
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:noreply.healthcare@gmail.com}
+    password: ${MAIL_PASSWORD:your-app-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    date-format: yyyy-MM-dd HH:mm:ss
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:YourSuperSecretKeyThatIsAtLeast256BitsLongForHS256AlgorithmSecurity!}
+    expiration: 86400000          # 24 hours in ms
+    refresh-expiration: 604800000 # 7 days in ms
+
+  slot:
+    duration-minutes: 30
+
+  gemini:
+    api-key: ${GEMINI_API_KEY:AIzaSyC777tPqplHUy6taJoJj5RxrtQqO2P5YXc}
+    api-url: https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent
+
+  openai:
+    # Your key starts with sk-or-v1- which is OpenRouter, not direct OpenAI.
+    # OpenRouter base-url is required — do NOT use api.openai.com with this key.
+    api-key: ${OPENAI_API_KEY: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}
+    model: ${OPENAI_MODEL:openai/gpt-4o-mini}
+    base-url: ${OPENAI_BASE_URL:https://openrouter.ai/api/v1/chat/completions}
+
+  razorpay:
+    key-id: ${RAZORPAY_KEY_ID:rzp_test_SUJwF4qlfTeRvS}
+    key-secret: ${RAZORPAY_KEY_SECRET:1hY78SBeQrXeHSD4CK2nx3od}
+
+  twilio:
+    account-sid: ${TWILIO_ACCOUNT_SID:your-twilio-account-sid}
+    auth-token: ${TWILIO_AUTH_TOKEN:your-twilio-auth-token}
+    from-number: ${TWILIO_FROM_NUMBER:+1234567890}
+
+  notification:
+    mode: ${NOTIFICATION_MODE:dev}   # dev = mock logs | prod = real email+SMS
+
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+
+logging:
+  level:
+    com.healthcare: DEBUG
+    org.springframework.security: INFO
