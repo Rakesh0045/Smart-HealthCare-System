@@ -1,12 +1,14 @@
+// DoctorSchedule.tsx - ProvoHeal redesign
 import { useEffect, useState } from 'react'
 import { doctorApi } from '../../api'
-import { PageHeader, LoadingSpinner } from '../../components/common'
-import { Clock, Save, ToggleLeft, ToggleRight, Calendar } from 'lucide-react'
+import { LoadingSpinner } from '../../components/common'
+import { Clock, Save, ToggleLeft, ToggleRight, Info, CheckCircle2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const DAYS = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY']
-const DAY_LABELS: Record<string,string> = { MONDAY:'Mon',TUESDAY:'Tue',WEDNESDAY:'Wed',THURSDAY:'Thu',FRIDAY:'Fri',SATURDAY:'Sat',SUNDAY:'Sun' }
+const DAY_SHORT: Record<string,string> = { MONDAY:'Mon',TUESDAY:'Tue',WEDNESDAY:'Wed',THURSDAY:'Thu',FRIDAY:'Fri',SATURDAY:'Sat',SUNDAY:'Sun' }
 const DAY_FULL: Record<string,string> = { MONDAY:'Monday',TUESDAY:'Tuesday',WEDNESDAY:'Wednesday',THURSDAY:'Thursday',FRIDAY:'Friday',SATURDAY:'Saturday',SUNDAY:'Sunday' }
+const DAY_COLOR: Record<string,string> = { MONDAY:'#0d9488',TUESDAY:'#0891b2',WEDNESDAY:'#7c3aed',THURSDAY:'#f59e0b',FRIDAY:'#10b981',SATURDAY:'#ef4444',SUNDAY:'#6b7280' }
 
 interface DaySchedule { dayOfWeek: string; isAvailable: boolean; startTime: string; endTime: string; breakStart: string; breakEnd: string }
 const blank = (day: string): DaySchedule => ({ dayOfWeek: day, isAvailable: false, startTime: '09:00', endTime: '17:00', breakStart: '', breakEnd: '' })
@@ -41,12 +43,8 @@ export default function DoctorSchedule() {
     setSaving(true)
     try {
       const payload = schedule.filter(d => d.isAvailable).map(d => ({
-        dayOfWeek: d.dayOfWeek,
-        startTime: d.startTime + ':00',
-        endTime: d.endTime + ':00',
-        isAvailable: true,
-        breakStart: d.breakStart ? d.breakStart + ':00' : null,
-        breakEnd: d.breakEnd ? d.breakEnd + ':00' : null,
+        dayOfWeek: d.dayOfWeek, startTime: d.startTime + ':00', endTime: d.endTime + ':00',
+        isAvailable: true, breakStart: d.breakStart ? d.breakStart + ':00' : null, breakEnd: d.breakEnd ? d.breakEnd + ':00' : null,
       }))
       await doctorApi.setAvailability(payload)
       toast.success('Schedule saved!')
@@ -54,195 +52,178 @@ export default function DoctorSchedule() {
   }
 
   const handleToggle = async () => {
-    try {
-      await doctorApi.toggleAvailability()
-      setDocAvailable(p => !p)
-      toast.success(docAvailable ? 'You are now offline' : 'You are now available')
-    } catch {}
+    try { await doctorApi.toggleAvailability(); setDocAvailable(p => !p); toast.success(docAvailable ? 'You are now offline' : 'You are now available') } catch {}
   }
 
-  if (loading) return <LoadingSpinner />
-
   const activeDays = schedule.filter(d => d.isAvailable).length
+
+  if (loading) return <LoadingSpinner />
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        .doc-sched * { font-family: 'Plus Jakarta Sans', sans-serif !important; }
-        @keyframes heroShiftSched {
-          0%   { background-position: 0% 50%; }
-          50%  { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+        .sched-page { font-family: 'Sora', sans-serif; }
+        @keyframes fadeSlide { from { opacity:0;transform:translateY(14px); } to { opacity:1;transform:translateY(0); } }
+
+        .pv-card {
+          background: white; border-radius: 16px;
+          border: 1px solid #f0fdf4;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(13,148,136,0.04);
         }
-        @keyframes orbS1 {
-          0%, 100% { transform: translate(0,0) scale(1); opacity:0.7; }
-          50%       { transform: translate(25px,-18px) scale(1.12); opacity:1; }
+        .time-input {
+          padding: 9px 12px; border-radius: 10px;
+          border: 1.5px solid #e6f7f5; background: #fafffe;
+          color: #0f172a; font-size: 12px; font-family: 'JetBrains Mono', monospace;
+          outline: none; width: 120px; transition: all 0.2s;
         }
-        @keyframes orbS2 {
-          0%, 100% { transform: translate(0,0) scale(1); opacity:0.6; }
-          60%       { transform: translate(-20px,16px) scale(1.09); opacity:0.9; }
-        }
-        .hero-sched-banner {
-          background: linear-gradient(130deg, #0d9488, #0891b2, #06b6d4, #1e40af, #0d9488, #0d4f4a);
-          background-size: 400% 400%;
-          animation: heroShiftSched 10s ease infinite;
-          border-radius: 1rem;
-          position: relative;
-          overflow: hidden;
-          padding: 1.5rem;
-          color: white;
-        }
-        .hero-sched-banner::before {
-          content:''; position:absolute; top:-50px; right:-40px;
-          width:200px; height:200px; border-radius:50%;
-          background: radial-gradient(circle, rgba(6,182,212,0.3) 0%, transparent 70%);
-          animation: orbS1 6s ease-in-out infinite;
-        }
-        .hero-sched-banner::after {
-          content:''; position:absolute; bottom:-60px; left:10px;
-          width:170px; height:170px; border-radius:50%;
-          background: radial-gradient(circle, rgba(30,64,175,0.22) 0%, transparent 70%);
-          animation: orbS2 8s ease-in-out infinite;
-        }
-          padding: 7px 10px; border-radius: 10px;
-          border: 1.5px solid #ccfbf1; background: #f0fdfa;
-          color: #0f172a; font-size: 13px; outline: none;
-          width: 110px; transition: all 0.15s;
-          font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-        .time-input:focus { border-color: #0d9488; background: #fff; box-shadow: 0 0 0 3px rgba(13,148,136,0.1); }
-        .save-btn {
-          background: linear-gradient(135deg, #0d9488, #0891b2);
-          color: white; border: none; border-radius: 12px;
-          padding: 10px 22px; font-size: 13px; font-weight: 700;
-          cursor: pointer; display: flex; align-items: center; gap: 7px;
-          transition: all 0.2s; font-family: 'Plus Jakarta Sans', sans-serif;
-        }
-        .save-btn:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(13,148,136,0.25); }
-        .save-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .day-card-active {
-          background: #fff; border: 1.5px solid #5eead4;
-          box-shadow: 0 2px 12px rgba(13,148,136,0.08);
-        }
-        .day-card-inactive {
-          background: #fafafa; border: 1.5px solid #f1f5f9;
-          opacity: 0.65;
-        }
-        .toggle-track {
-          width: 40px; height: 22px; border-radius: 11px;
+        .time-input:focus { border-color: #0d9488; background: white; box-shadow: 0 0 0 3px rgba(13,148,136,0.08); }
+
+        .day-toggle {
+          width: 44px; height: 24px; border-radius: 12px;
           cursor: pointer; transition: background 0.2s; position: relative; flex-shrink: 0;
         }
-        .toggle-thumb {
-          position: absolute; top: 3px;
-          width: 16px; height: 16px;
-          border-radius: 50%; background: white;
-          box-shadow: 0 1px 4px rgba(0,0,0,0.2);
-          transition: transform 0.2s;
+        .day-toggle-thumb {
+          position: absolute; top: 4px;
+          width: 16px; height: 16px; border-radius: 50%;
+          background: white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); transition: transform 0.2s;
+        }
+        .save-sched-btn {
+          display: flex; align-items: center; gap: 8px;
+          padding: 11px 24px; border-radius: 12px;
+          background: linear-gradient(135deg, #0d9488, #0891b2);
+          color: white; border: none; font-size: 13px; font-weight: 700;
+          font-family: 'Sora', sans-serif; cursor: pointer; transition: all 0.2s;
+        }
+        .save-sched-btn:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(13,148,136,0.25); }
+        .save-sched-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .avail-toggle {
+          display: flex; align-items: center; gap: 8px;
+          padding: 10px 18px; border-radius: 12px;
+          border: 1.5px solid; font-size: 13px; font-weight: 700;
+          font-family: 'Sora', sans-serif; cursor: pointer; transition: all 0.2s;
+          background: white;
         }
       `}</style>
 
-      <div className="doc-sched space-y-6">
-        {/* Header */}
-        <div className="hero-sched-banner">
-          <div className="relative z-10 flex items-start justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <p className="text-teal-100 text-xs font-bold uppercase tracking-widest mb-0.5">Doctor Portal</p>
-                <h1 className="text-xl font-bold text-white">My Schedule</h1>
-                <p className="text-teal-200 text-sm">Set your weekly availability for patient bookings</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button onClick={handleToggle}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm border transition-all"
-                style={docAvailable
-                  ? { background: 'rgba(255,255,255,0.2)', color: 'white', borderColor: 'rgba(255,255,255,0.3)' }
-                  : { background: 'rgba(239,68,68,0.2)', color: '#fca5a5', borderColor: 'rgba(239,68,68,0.3)' }
-                }>
-                {docAvailable ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
-                {docAvailable ? 'Available' : 'Unavailable'}
-              </button>
-              <button onClick={handleSave} disabled={saving} className="save-btn">
-                <Save className="w-4 h-4" />{saving ? 'Saving...' : 'Save Schedule'}
-              </button>
-            </div>
-          </div>
+      <div className="sched-page" style={{ maxWidth: 900, margin: '0 auto', paddingBottom: 40 }}>
 
-          {/* Stats row */}
-          <div className="flex gap-4 mt-5 relative z-10">
-            <div className="bg-white/15 rounded-xl px-4 py-2.5 text-center">
-              <p className="text-teal-100 text-[10px] font-bold uppercase tracking-wider">Active Days</p>
-              <p className="text-white text-xl font-bold">{activeDays}</p>
-            </div>
-            <div className="bg-white/15 rounded-xl px-4 py-2.5 text-center">
-              <p className="text-teal-100 text-[10px] font-bold uppercase tracking-wider">Status</p>
-              <p className={`text-xl font-bold ${docAvailable ? 'text-white' : 'text-red-300'}`}>
-                {docAvailable ? 'Online' : 'Offline'}
-              </p>
-            </div>
+        {/* HEADER */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 16, animation: 'fadeSlide 0.4s ease both' }}>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>Doctor Portal</p>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0 }}>My Schedule</h1>
+            <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Set your weekly availability for patient bookings</p>
+          </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <button
+              className="avail-toggle"
+              onClick={handleToggle}
+              style={{ color: docAvailable ? '#0d9488' : '#ef4444', borderColor: docAvailable ? '#ccfbf1' : '#fecaca', background: docAvailable ? '#f0fdfa' : '#fef2f2' }}
+            >
+              {docAvailable ? <ToggleRight style={{ width: 18, height: 18 }} /> : <ToggleLeft style={{ width: 18, height: 18 }} />}
+              {docAvailable ? 'Available' : 'Unavailable'}
+            </button>
+            <button className="save-sched-btn" onClick={handleSave} disabled={saving}>
+              <Save style={{ width: 16, height: 16 }} />
+              {saving ? 'Saving...' : 'Save Schedule'}
+            </button>
           </div>
         </div>
 
-        {/* Day Cards */}
-        <div className="grid gap-3">
-          {schedule.map((day, i) => (
-            <div key={day.dayOfWeek} className={`rounded-2xl p-4 transition-all duration-200 ${day.isAvailable ? 'day-card-active' : 'day-card-inactive'}`}>
-              <div className="flex items-center gap-4 flex-wrap">
-                {/* Day toggle */}
-                <div className="flex items-center gap-3 w-36 flex-shrink-0">
-                  <div
-                    className="toggle-track"
-                    style={{ background: day.isAvailable ? '#0d9488' : '#e2e8f0' }}
-                    onClick={() => update(i, 'isAvailable', !day.isAvailable)}
-                  >
-                    <div className="toggle-thumb"
-                      style={{ transform: day.isAvailable ? 'translateX(18px)' : 'translateX(3px)' }} />
-                  </div>
-                  <div>
-                    <p className={`text-sm font-bold ${day.isAvailable ? 'text-teal-700' : 'text-slate-400'}`}>
-                      {DAY_LABELS[day.dayOfWeek]}
-                    </p>
-                    <p className={`text-[10px] ${day.isAvailable ? 'text-teal-500' : 'text-slate-300'}`}>
-                      {DAY_FULL[day.dayOfWeek]}
-                    </p>
-                  </div>
-                </div>
-
-                {day.isAvailable ? (
-                  <div className="flex items-center gap-3 flex-wrap flex-1">
-                    {/* Work hours */}
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                        style={{ background: '#ccfbf1' }}>
-                        <Clock className="w-3.5 h-3.5" style={{ color: '#0d9488' }} />
-                      </div>
-                      <input type="time" value={day.startTime} onChange={e => update(i, 'startTime', e.target.value)} className="time-input" />
-                      <span className="text-slate-400 text-sm font-medium">to</span>
-                      <input type="time" value={day.endTime} onChange={e => update(i, 'endTime', e.target.value)} className="time-input" />
-                    </div>
-                    {/* Break */}
-                    <div className="flex items-center gap-2 pl-3" style={{ borderLeft: '1.5px solid #ccfbf1' }}>
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-teal-600 whitespace-nowrap">Break:</span>
-                      <input type="time" value={day.breakStart} onChange={e => update(i, 'breakStart', e.target.value)} className="time-input" placeholder="--:--" />
-                      <span className="text-slate-400 text-sm">–</span>
-                      <input type="time" value={day.breakEnd} onChange={e => update(i, 'breakEnd', e.target.value)} className="time-input" placeholder="--:--" />
-                    </div>
-                  </div>
-                ) : (
-                  <span className="text-sm text-slate-400 italic">Not working this day</span>
-                )}
-              </div>
+        {/* SUMMARY STATS */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+          {[
+            { label: 'Active Days',    value: activeDays,                         grad: 'linear-gradient(135deg, #1e40af, #3b82f6)', shadow: 'rgba(59,130,246,0.25)' },
+            { label: 'Status',         value: docAvailable ? 'Online' : 'Offline', grad: docAvailable ? 'linear-gradient(135deg, #15803d, #22c55e)' : 'linear-gradient(135deg, #be123c, #f43f5e)', shadow: docAvailable ? 'rgba(34,197,94,0.25)' : 'rgba(244,63,94,0.25)' },
+            { label: 'Slot Duration',  value: '30 min',                            grad: 'linear-gradient(135deg, #6d28d9, #a78bfa)', shadow: 'rgba(167,139,250,0.25)' },
+            { label: 'Weekly Slots',   value: activeDays * 16,                     grad: 'linear-gradient(135deg, #b45309, #f59e0b)', shadow: 'rgba(245,158,11,0.25)' },
+          ].map((stat, i) => (
+            <div key={stat.label} style={{
+              padding: '20px 22px', borderRadius: 16,
+              background: stat.grad,
+              boxShadow: `0 4px 20px ${stat.shadow}`,
+              animation: `fadeSlide 0.4s ${i * 0.07}s ease both`,
+              position: 'relative', overflow: 'hidden',
+            }}>
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+              <p style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 10px' }}>{stat.label}</p>
+              <p style={{ fontSize: 28, fontWeight: 700, color: 'white', margin: 0, lineHeight: 1 }}>{stat.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 p-4 rounded-2xl text-sm" style={{ background: '#f0fdfa', border: '1.5px solid #99f6e4', color: '#0d9488' }}>
-          <Clock className="w-4 h-4 flex-shrink-0" />
-          <span className="font-semibold">💡 Slots are auto-generated every 30 minutes within your working hours. Break times are excluded.</span>
+        {/* DAY CARDS */}
+        <div className="pv-card" style={{ overflow: 'hidden', animation: 'fadeSlide 0.5s 0.2s ease both' }}>
+          {/* Header row */}
+          <div style={{ padding: '16px 24px', background: '#fafffe', borderBottom: '1px solid #f0fdf4', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Info style={{ width: 16, height: 16, color: '#0d9488' }} />
+            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>
+              Slots are auto-generated every 30 minutes within your working hours. Break times are excluded from bookings.
+            </span>
+          </div>
+
+          {schedule.map((day, i) => {
+            const color = DAY_COLOR[day.dayOfWeek]
+            return (
+              <div key={day.dayOfWeek} style={{
+                display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px',
+                borderBottom: i < 6 ? '1px solid #f0fdf4' : 'none',
+                background: day.isAvailable ? 'white' : '#fafffe',
+                transition: 'background 0.2s',
+                animation: `fadeSlide 0.4s ${i * 0.04}s ease both`,
+                flexWrap: 'wrap'
+              }}>
+
+                {/* Day toggle + name */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: 160, flexShrink: 0 }}>
+                  <div
+                    className="day-toggle"
+                    style={{ background: day.isAvailable ? color : '#e2e8f0' }}
+                    onClick={() => update(i, 'isAvailable', !day.isAvailable)}
+                  >
+                    <div className="day-toggle-thumb" style={{ transform: day.isAvailable ? 'translateX(20px)' : 'translateX(4px)' }} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: day.isAvailable ? '#0f172a' : '#94a3b8' }}>
+                      {DAY_FULL[day.dayOfWeek]}
+                    </div>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: day.isAvailable ? color : '#cbd5e1' }}>
+                      {day.isAvailable ? 'Working' : 'Day off'}
+                    </div>
+                  </div>
+                </div>
+
+                {day.isAvailable ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: 1, flexWrap: 'wrap' }}>
+                    {/* Work hours */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Clock style={{ width: 15, height: 15, color: '#0d9488' }} />
+                      <input type="time" value={day.startTime} onChange={e => update(i, 'startTime', e.target.value)} className="time-input" />
+                      <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>to</span>
+                      <input type="time" value={day.endTime} onChange={e => update(i, 'endTime', e.target.value)} className="time-input" />
+                    </div>
+
+                    {/* Break */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingLeft: 16, borderLeft: '1px solid #f0fdf4' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>Break:</span>
+                      <input type="time" value={day.breakStart} onChange={e => update(i, 'breakStart', e.target.value)} className="time-input" />
+                      <span style={{ fontSize: 12, color: '#94a3b8' }}>–</span>
+                      <input type="time" value={day.breakEnd} onChange={e => update(i, 'breakEnd', e.target.value)} className="time-input" />
+                    </div>
+
+                    {/* Slot count estimate */}
+                    <div style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 8, background: `${color}10`, border: `1px solid ${color}20` }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: color }}>~16 slots</span>
+                    </div>
+                  </div>
+                ) : (
+                  <span style={{ fontSize: 13, color: '#cbd5e1', fontStyle: 'italic' }}>Not working — toggle to enable</span>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
     </>
