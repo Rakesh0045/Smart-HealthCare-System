@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { appointmentApi, notificationApi } from '../../api'
-import { Calendar, ClipboardList, Activity, Bell, Plus, ArrowRight, Brain, Video, FileText, Search, Clock, CheckCircle2 } from 'lucide-react'
+import {
+  Calendar, FileText, Brain, Search,
+  Plus, ArrowRight, Clock, CheckCircle2,
+  Video, Activity, Stethoscope, Bell,
+  TrendingUp, ChevronRight, Heart
+} from 'lucide-react'
 
 export default function PatientDashboard() {
   const { user } = useAuthStore()
@@ -23,8 +28,9 @@ export default function PatientDashboard() {
 
   const upcoming = appointments.filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED')
   const completed = appointments.filter(a => a.status === 'COMPLETED')
-  const nextAppointment = upcoming.sort((a, b) =>
+  const nextAppointment = [...upcoming].sort((a, b) =>
     new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())[0]
+  const unread = notifications.filter(n => !n.isRead).length
 
   const getTimeUntil = (date: string) => {
     const now = new Date()
@@ -37,278 +43,429 @@ export default function PatientDashboard() {
   }
 
   const getGreeting = () => {
-    const hour = new Date().getHours()
-    if (hour < 12) return 'Good morning'
-    if (hour < 17) return 'Good afternoon'
+    const h = new Date().getHours()
+    if (h < 12) return 'Good morning'
+    if (h < 17) return 'Good afternoon'
     return 'Good evening'
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-slate-200 border-t-blue-500 rounded-full animate-spin" />
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 60, fontFamily: "'Sora', sans-serif" }}>
+        <div style={{ width: 40, height: 40, border: '3px solid #ccfbf1', borderTopColor: '#0d9488', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
 
   return (
-    <div>
-      {/* Topbar */}
-      <div className="flex items-start justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-light text-slate-900 mb-1">
-            {getGreeting()}, <span className="font-semibold">{user?.name?.split(' ')[0]}</span>
-          </h1>
-          <p className="text-sm text-slate-500">Here's your health summary for today</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate('/patient/symptom-checker')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-medium text-slate-600 hover:border-blue-300 hover:text-blue-600 transition-all">
-            <Brain className="w-4 h-4" />
-            AI Symptom Checker
-          </button>
-          <button
-            onClick={() => navigate('/patient/book')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-500 text-sm font-medium text-white hover:bg-blue-600 transition-all shadow-sm shadow-blue-500/25">
-            <Plus className="w-4 h-4" />
-            Book Appointment
-          </button>
-        </div>
-      </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Upcoming', value: upcoming.length, color: 'blue', suffix: 'appointments' },
-          { label: 'Completed', value: completed.length, color: 'green', suffix: 'sessions' },
-          { label: 'Total Visits', value: appointments.length, color: 'purple', suffix: 'all time' },
-          { label: 'Unread', value: notifications.filter(n => !n.isRead).length, color: 'amber', suffix: 'notifications' },
-        ].map((stat, i) => (
-          <div
-            key={stat.label}
-            className="bg-white rounded-2xl p-5 border border-slate-100 relative overflow-hidden animate-fadeUp"
-            style={{ animationDelay: `${i * 0.05}s` }}>
-            <div className={`absolute top-0 right-0 w-20 h-20 rounded-full opacity-[0.06] -translate-y-1/2 translate-x-1/2 ${
-              stat.color === 'blue' ? 'bg-blue-500' :
-              stat.color === 'green' ? 'bg-emerald-500' :
-              stat.color === 'purple' ? 'bg-violet-500' :
-              'bg-amber-500'
-            }`} />
-            <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider mb-2">{stat.label}</div>
-            <div className={`text-4xl font-light mb-1 ${
-              stat.color === 'blue' ? 'text-blue-500' :
-              stat.color === 'green' ? 'text-emerald-500' :
-              stat.color === 'purple' ? 'text-violet-500' :
-              'text-amber-500'
-            }`}>{stat.value}</div>
-            <span className="text-[11px] text-slate-400 font-medium">{stat.suffix}</span>
+        .pat-dash { font-family: 'Sora', sans-serif; }
+        .pat-mono { font-family: 'JetBrains Mono', monospace; }
+
+        @keyframes fadeSlide {
+          from { opacity: 0; transform: translateY(18px); }
+          to   { opacity: 1; transform: translateY(0);    }
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Teal Card — base ── */
+        .teal-card {
+          background: white; border-radius: 20px;
+          border: 1px solid #e6f7f5;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 20px rgba(37,99,235,0.06);
+          animation: fadeSlide 0.45s ease both;
+        }
+        .teal-card:hover {
+          border-color: #bfdbfe;
+          box-shadow: 0 4px 24px rgba(37,99,235,0.12);
+          transition: all 0.2s;
+        }
+
+        /* ── Stat cards (same gradient style as doctor portal) ── */
+        .stat-card {
+          border-radius: 20px; padding: 22px 24px;
+          position: relative; overflow: hidden;
+          animation: fadeSlide 0.5s ease both;
+          cursor: default;
+          transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-card::before {
+          content: ''; position: absolute; top: -30px; right: -30px;
+          width: 120px; height: 120px; border-radius: 50%;
+          background: rgba(255,255,255,0.1);
+        }
+        .stat-card-icon {
+          width: 40px; height: 40px; border-radius: 12px;
+          background: rgba(255,255,255,0.2);
+          display: flex; align-items: center; justify-content: center;
+          margin-bottom: 16px;
+        }
+        .stat-card-label {
+          font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.7);
+          text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 6px;
+        }
+        .stat-card-value {
+          font-size: 34px; font-weight: 700; color: white;
+          margin: 0 0 6px; line-height: 1;
+        }
+        .stat-card-sub {
+          font-size: 11px; color: rgba(255,255,255,0.6); font-weight: 500;
+        }
+
+        /* ── Quick action row ── */
+        .quick-action {
+          display: flex; align-items: center; gap: 12px;
+          padding: 13px 16px; border-radius: 14px;
+          border: 1px solid #f0fdf4; background: white;
+          cursor: pointer; transition: all 0.18s;
+          animation: fadeSlide 0.4s ease both; text-decoration: none;
+        }
+        .quick-action:hover {
+          border-color: #93c5fd;
+          box-shadow: 0 4px 16px rgba(37,99,235,0.12);
+          transform: translateX(4px);
+        }
+        .quick-action-icon {
+          width: 38px; height: 38px; border-radius: 11px;
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+
+        /* ── Notification item ── */
+        .notif-item {
+          display: flex; gap: 10px; padding: 11px 0;
+          border-bottom: 1px solid #f0fdf4;
+          animation: fadeSlide 0.4s ease both;
+        }
+        .notif-item:last-child { border-bottom: none; }
+
+        /* ── Appointment timeline card ── */
+        .appt-mini {
+          display: flex; align-items: center; gap: 14px;
+          padding: 12px 16px; border-radius: 14px;
+          background: #fafffe; border: 1px solid #e6f7f5;
+          transition: all 0.18s; animation: fadeSlide 0.4s ease both;
+          cursor: pointer;
+        }
+        .appt-mini:hover {
+          border-color: #5eead4;
+          box-shadow: 0 4px 14px rgba(13,148,136,0.1);
+          transform: translateX(3px);
+        }
+
+        /* ── Primary btn ── */
+                .teal-btn-primary {
+          display: inline-flex; align-items: center; gap: 7px;
+          padding: 10px 20px; border-radius: 12px;
+          background: linear-gradient(135deg, #0d6efd, #2563eb);
+          color: white; border: none; font-size: 13px; font-weight: 700;
+          font-family: 'Sora', sans-serif; cursor: pointer;
+          transition: all 0.2s;
+          box-shadow: 0 4px 14px rgba(37,99,235,0.25);
+        }
+        .teal-btn-primary:hover {
+          opacity: 0.9; transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(37,99,235,0.35);
+        }
+
+        .teal-btn-secondary {
+          display: inline-flex; align-items: center; gap: 7px;
+          padding: 9px 18px; border-radius: 12px;
+          background: white; color: #2563eb;
+          border: 1.5px solid #bfdbfe; font-size: 13px; font-weight: 600;
+          font-family: 'Sora', sans-serif; cursor: pointer;
+          transition: all 0.18s;
+        }
+        .teal-btn-secondary:hover { background: #eff6ff; border-color: #2563eb; }
+        /* ── Status badge ── */
+        .appt-status {
+          padding: 3px 10px; border-radius: 20px;
+          font-size: 11px; font-weight: 700;
+          white-space: nowrap;
+        }
+      `}</style>
+
+      <div className="pat-dash">
+
+        {/* ─────── Header ─────── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
+          <div>
+            <p style={{ fontSize: 12, fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
+              Patient Portal
+            </p>
+            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.2 }}>
+              {getGreeting()}, <span style={{ color: '#2563eb' }}>{user?.name?.split(' ')[0]}</span> 👋            </h1>
+            <p style={{ fontSize: 13, color: '#64748b', marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block', boxShadow: '0 0 0 3px rgba(16,185,129,0.2)' }} />
+              {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
           </div>
-        ))}
-      </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-3 gap-5">
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="teal-btn-secondary" onClick={() => navigate('/patient/symptom-checker')}>
+              <Brain size={15} /> AI Symptom Checker
+            </button>
+            <button className="teal-btn-primary" onClick={() => navigate('/patient/book')}>
+              <Plus size={15} /> Book Appointment
+            </button>
+          </div>
+        </div>
 
-        {/* Left Column */}
-        <div className="col-span-2 space-y-5">
-          {/* Next Appointment */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-6 animate-fadeUp" style={{ animationDelay: '0.2s' }}>
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-sm font-semibold text-slate-900">Next Appointment</h2>
-              <button
-                onClick={() => navigate('/patient/appointments')}
-                className="text-xs text-blue-500 font-medium hover:text-blue-600 flex items-center gap-1">
-                View all <ArrowRight className="w-3 h-3" />
+        {/* ─────── Stat cards (gradient, same as doctor portal) ─────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+          {[
+            { label: 'Upcoming', value: upcoming.length, sub: 'appointments', grad: 'linear-gradient(135deg, #0d9488, #0891b2)', shadow: 'rgba(13,148,136,0.3)', icon: Calendar },
+            { label: 'Completed', value: completed.length, sub: 'sessions', grad: 'linear-gradient(135deg, #15803d, #22c55e)', shadow: 'rgba(34,197,94,0.3)', icon: CheckCircle2 },
+            { label: 'Total Visits', value: appointments.length, sub: 'all time', grad: 'linear-gradient(135deg, #6d28d9, #a78bfa)', shadow: 'rgba(167,139,250,0.3)', icon: Activity },
+            { label: 'Notifications', value: unread, sub: 'unread', grad: 'linear-gradient(135deg, #be185d, #ec4899)', shadow: 'rgba(236,72,153,0.3)', icon: Bell },
+          ].map((s, i) => (
+            <div key={s.label} className="stat-card" style={{ background: s.grad, boxShadow: `0 4px 20px ${s.shadow}`, animationDelay: `${i * 0.07}s` }}>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div className="stat-card-icon"><s.icon size={20} color="white" /></div>
+                <p className="stat-card-label">{s.label}</p>
+                <p className="stat-card-value">{s.value}</p>
+                <p className="stat-card-sub">{s.sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* ─────── Main 3-col grid ─────── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 320px', gap: 20 }}>
+
+          {/* ─── Next Appointment ─── */}
+          <div className="teal-card" style={{ padding: 24, animationDelay: '0.25s' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0 }}>Next Appointment</h2>
+              <button onClick={() => navigate('/patient/appointments')}
+                style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
+                View all <ArrowRight size={13} />
               </button>
             </div>
 
             {nextAppointment ? (
-              <div className="flex flex-col sm:flex-row gap-5">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="px-2.5 py-1 rounded-full bg-slate-100 text-xs font-medium text-slate-600">
-                      {getTimeUntil(nextAppointment.appointmentDate)}
-                    </span>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                      nextAppointment.paymentStatus === 'PAID'
-                        ? 'bg-emerald-50 text-emerald-600'
-                        : 'bg-amber-50 text-amber-600'
-                    }`}>
-                      {nextAppointment.paymentStatus === 'PAID' ? 'Paid' : 'Payment Pending'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-lg font-semibold shadow-sm shadow-blue-500/25">
-                      {nextAppointment.doctorName?.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-slate-900">Dr. {nextAppointment.doctorName}</h3>
-                      <p className="text-sm text-slate-500">{nextAppointment.doctorSpecialization}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
-                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-                        <Calendar className="w-4 h-4 text-slate-500" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase tracking-wider">Date</div>
-                        <div className="text-sm font-medium text-slate-700">
-                          {new Date(nextAppointment.appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
-                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center">
-                        <Clock className="w-4 h-4 text-slate-500" />
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-slate-400 uppercase tracking-wider">Time</div>
-                        <div className="text-sm font-medium text-slate-700">
-                          {nextAppointment.startTime?.slice(0,5)} – {nextAppointment.endTime?.slice(0,5)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  {nextAppointment.reason && (
-                    <p className="text-sm text-slate-500 mt-4 pt-4 border-t border-slate-100">{nextAppointment.reason}</p>
-                  )}
+              <div>
+                {/* Time pill */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+                  <span style={{ padding: '4px 12px', borderRadius: 20, background: '#f0fdfa', border: '1px solid #ccfbf1', fontSize: 11, fontWeight: 700, color: '#0d9488' }}>
+                    {getTimeUntil(nextAppointment.appointmentDate)}
+                  </span>
+                  <span style={{
+                    padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                    background: nextAppointment.paymentStatus === 'PAID' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
+                    color: nextAppointment.paymentStatus === 'PAID' ? '#10b981' : '#f59e0b'
+                  }}>
+                    {nextAppointment.paymentStatus === 'PAID' ? 'Paid' : 'Payment Pending'}
+                  </span>
                 </div>
-                <div className="flex sm:flex-col gap-2 sm:items-end">
-                  <button className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium transition-all">
-                    <Video className="w-4 h-4" />
-                    Join Call
+
+                {/* Doctor info */}
+                <div style={{ display: 'flex', gap: 14, marginBottom: 18 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 14, background: 'linear-gradient(135deg, #2563eb, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 800, fontSize: 18, flexShrink: 0, boxShadow: '0 4px 12px rgba(37,99,235,0.3)' }}>
+                    {nextAppointment.doctorName?.charAt(0)}
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 3px' }}>
+                      Dr. {nextAppointment.doctorName}
+                    </h3>
+                    <p style={{ fontSize: 12, color: '#0d9488', fontWeight: 600, margin: 0 }}>
+                      {nextAppointment.doctorSpecialization}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Date + Time pills */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+                  {[
+                    { icon: Calendar, label: 'Date', value: new Date(nextAppointment.appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) },
+                    { icon: Clock, label: 'Time', value: `${nextAppointment.startTime?.slice(0, 5)} – ${nextAppointment.endTime?.slice(0, 5)}` },
+                  ].map(item => (
+                    <div key={item.label} style={{ padding: '12px', borderRadius: 12, background: '#fafffe', border: '1px solid #e6f7f5', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ width: 30, height: 30, borderRadius: 8, background: '#f0fdfa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <item.icon size={14} color="#0d9488" />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</div>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: '#0f172a' }}>{item.value}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="teal-btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>
+                    <Video size={14} /> Join Call
                   </button>
-                  <button className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-all">
-                    <Calendar className="w-4 h-4" />
-                    Reschedule
+                  <button className="teal-btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/patient/appointments')}>
+                    <Calendar size={14} /> Reschedule
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 border-2 border-dashed border-slate-100 rounded-xl">
-                <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                  <Calendar className="w-6 h-6 text-slate-400" />
+              <div style={{ textAlign: 'center', padding: '32px 16px', border: '2px dashed #e6f7f5', borderRadius: 16 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 16, background: '#f0fdfa', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                  <Calendar size={24} color="#2563eb" />
                 </div>
-                <h3 className="text-sm font-medium text-slate-900 mb-1">No upcoming appointments</h3>
-                <p className="text-xs text-slate-500 mb-4">Book your first appointment with our specialists</p>
-                <button
-                  onClick={() => navigate('/patient/book')}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500 text-sm font-medium text-white hover:bg-blue-600 transition-all">
-                  <Plus className="w-4 h-4" />
-                  Book Now
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '0 0 6px' }}>No upcoming appointments</h3>
+                <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 16px' }}>Book your next consultation</p>
+                <button className="teal-btn-primary" onClick={() => navigate('/patient/book')}>
+                  <Plus size={14} /> Book Now
                 </button>
               </div>
             )}
           </div>
 
-          {/* Health Overview */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-6 animate-fadeUp" style={{ animationDelay: '0.25s' }}>
-            <h2 className="text-sm font-semibold text-slate-900 mb-4">Health Overview</h2>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Last Visit</div>
-                <div className="text-sm font-medium text-slate-900">
-                  {completed[0] ? new Date(completed[0].appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
-                </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  {completed[0]?.doctorSpecialization || 'No visits yet'}
-                </div>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Last Doctor</div>
-                <div className="text-sm font-medium text-slate-900">
-                  {completed[0] ? `Dr. ${completed[0].doctorName}` : 'N/A'}
-                </div>
-                <div className="text-xs text-slate-500 mt-1">
-                  {completed[0]?.doctorSpecialization || '-'}
-                </div>
-              </div>
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-                <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Last Payment</div>
-                <div className="text-sm font-medium text-slate-900">
-                  {completed[0]?.consultationFee ? `₹${completed[0].consultationFee}` : 'N/A'}
-                </div>
-                <div className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
-                  {completed[0]?.paymentStatus === 'PAID' && <CheckCircle2 className="w-3 h-3" />}
-                  {completed[0]?.paymentStatus === 'PAID' ? 'Confirmed' : '-'}
-                </div>
-              </div>
+          {/* ─── Health Overview ─── */}
+          <div className="teal-card" style={{ padding: 24, animationDelay: '0.3s' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0 }}>Health Overview</h2>
+              <TrendingUp size={16} color="#0d9488" />
             </div>
-          </div>
-        </div>
 
-        {/* Right Column */}
-        <div className="space-y-5">
+            {/* Last visit summary */}
+            <div style={{ padding: '16px', borderRadius: 14, background: 'linear-gradient(135deg, #f0fdfa, #e6f7f5)', border: '1px solid #ccfbf1', marginBottom: 16 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>Last Visit</p>
+              {completed[0] ? (
+                <>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '0 0 3px' }}>
+                    Dr. {completed[0].doctorName}
+                  </p>
+                  <p style={{ fontSize: 12, color: '#0d9488', margin: '0 0 6px', fontWeight: 500 }}>
+                    {completed[0].doctorSpecialization}
+                  </p>
+                  <p className="pat-mono" style={{ fontSize: 11, color: '#64748b', margin: 0 }}>
+                    {new Date(completed[0].appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </p>
+                </>
+              ) : (
+                <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>No visits yet</p>
+              )}
+            </div>
 
-          {/* Quick Actions */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 animate-fadeUp" style={{ animationDelay: '0.25s' }}>
-            <h2 className="text-sm font-semibold text-slate-900 mb-4">Quick Actions</h2>
-            <div className="space-y-2">
+            {/* Quick stats */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
               {[
-                { icon: Brain, label: 'AI Symptom Checker', sub: 'Analyze your symptoms', color: 'blue' },
-                { icon: Video, label: 'Video Consultation', sub: 'Start a virtual visit', color: 'green' },
-                { icon: FileText, label: 'View Prescriptions', sub: 'Download your Rx', color: 'purple' },
-                { icon: Search, label: 'Find Doctors', sub: 'Browse specialists', color: 'amber' },
-              ].map((action) => {
-                const Icon = action.icon
-                return (
-                  <button
-                    key={action.label}
-                    onClick={() => navigate(`/patient/${action.label === 'AI Symptom Checker' ? 'symptom-checker' : action.label === 'Video Consultation' ? 'book' : action.label === 'View Prescriptions' ? 'prescriptions' : 'doctors'}`)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-all group">
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                      action.color === 'blue' ? 'bg-blue-50 text-blue-500' :
-                      action.color === 'green' ? 'bg-emerald-50 text-emerald-500' :
-                      action.color === 'purple' ? 'bg-violet-50 text-violet-500' :
-                      'bg-amber-50 text-amber-500'
-                    }`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="text-sm font-medium text-slate-700">{action.label}</div>
-                      <div className="text-xs text-slate-400">{action.sub}</div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </button>
-                )
-              })}
+                { label: 'Total Visits', value: appointments.length, color: '#0d9488', bg: '#f0fdfa', border: '#ccfbf1' },
+                { label: 'Last Fee', value: completed[0]?.consultationFee ? `₹${completed[0].consultationFee}` : '—', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+                { label: 'Completed', value: completed.length, color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
+                { label: 'Upcoming', value: upcoming.length, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+              ].map(item => (
+                <div key={item.label} style={{ padding: '12px', borderRadius: 12, background: item.bg, border: `1px solid ${item.border}`, textAlign: 'center' }}>
+                  <p style={{ fontSize: 20, fontWeight: 700, color: item.color, margin: '0 0 3px' }}>{item.value}</p>
+                  <p style={{ fontSize: 10, fontWeight: 600, color: '#64748b', margin: 0, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</p>
+                </div>
+              ))}
             </div>
-          </div>
 
-          {/* Notifications */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 animate-fadeUp" style={{ animationDelay: '0.3s' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-slate-900">Notifications</h2>
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] font-medium text-slate-500">
-                {notifications.filter(n => !n.isRead).length} new
-              </span>
-            </div>
-            {notifications.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-8">No notifications yet</p>
-            ) : (
-              <div className="space-y-0">
-                {notifications.map((n) => (
-                  <div key={n.id} className="flex gap-3 py-3 border-b border-slate-50 last:border-0">
-                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
-                      n.isRead ? 'bg-slate-300' : 'bg-blue-500'
-                    }`} />
-                    <div>
-                      <p className="text-xs font-medium text-slate-800 leading-snug">{n.title}</p>
-                      <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{n.message}</p>
-                      <p className="text-[10px] text-slate-400 mt-1">
-                        {new Date(n.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            {/* Recent appointments mini-list */}
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>Recent</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {appointments.slice(0, 3).map((a, i) => {
+                const statusColor = a.status === 'COMPLETED' ? '#10b981' : a.status === 'CANCELLED' ? '#ef4444' : '#0d9488'
+                const statusBg = a.status === 'COMPLETED' ? 'rgba(16,185,129,0.1)' : a.status === 'CANCELLED' ? 'rgba(239,68,68,0.1)' : 'rgba(13,148,136,0.1)'
+                return (
+                  <div key={a.id} className="appt-mini" style={{ animationDelay: `${0.35 + i * 0.05}s` }}>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Dr. {a.doctorName}
+                      </p>
+                      <p className="pat-mono" style={{ fontSize: 10, color: '#94a3b8', margin: 0 }}>
+                        {new Date(a.appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {a.startTime?.slice(0, 5)}
                       </p>
                     </div>
+                    <span className="appt-status" style={{ background: statusBg, color: statusColor }}>
+                      {a.status}
+                    </span>
                   </div>
-                ))}
-              </div>
-            )}
+                )
+              })}
+              {appointments.length === 0 && (
+                <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', padding: '12px 0' }}>No history yet</p>
+              )}
+            </div>
           </div>
 
+          {/* ─── Right column: Quick Actions + Notifications ─── */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            {/* Quick Actions */}
+            <div className="teal-card" style={{ padding: 20, animationDelay: '0.32s' }}>
+              <h2 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '0 0 14px' }}>Quick Actions</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {[
+                  { icon: Brain, label: 'AI Symptom Checker', sub: 'Analyze symptoms', color: '#7c3aed', bg: '#f5f3ff', path: '/patient/symptom-checker', delay: '0.35s' },
+                  { icon: Video, label: 'Video Consultation', sub: 'Start virtual visit', color: '#0891b2', bg: '#e0f2fe', path: '/patient/book', delay: '0.38s' },
+                  { icon: FileText, label: 'View Prescriptions', sub: 'Download your Rx', color: '#0d9488', bg: '#f0fdfa', path: '/patient/prescriptions', delay: '0.41s' },
+                  { icon: Search, label: 'Find Doctors', sub: 'Browse specialists', color: '#f59e0b', bg: '#fffbeb', path: '/patient/doctors', delay: '0.44s' },
+                ].map(action => {
+                  const Icon = action.icon
+                  return (
+                    <div key={action.label} className="quick-action" onClick={() => navigate(action.path)} style={{ animationDelay: action.delay }}>
+                      <div className="quick-action-icon" style={{ background: action.bg }}>
+                        <Icon size={16} color={action.color} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', margin: 0 }}>{action.label}</p>
+                        <p style={{ fontSize: 10, color: '#94a3b8', margin: 0 }}>{action.sub}</p>
+                      </div>
+                      <ChevronRight size={13} color="#cbd5e1" />
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Notifications */}
+            <div className="teal-card" style={{ padding: 20, flex: 1, animationDelay: '0.4s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <h2 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: 0 }}>Notifications</h2>
+                <span style={{ padding: '2px 8px', borderRadius: 20, background: unread > 0 ? 'rgba(13,148,136,0.1)' : '#f8fafc', color: unread > 0 ? '#0d9488' : '#94a3b8', fontSize: 11, fontWeight: 700 }}>
+                  {unread} new
+                </span>
+              </div>
+
+              {notifications.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                  <Bell size={28} color="#e2e8f0" style={{ margin: '0 auto 8px' }} />
+                  <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>No notifications yet</p>
+                </div>
+              ) : (
+                <div>
+                  {notifications.map((n, i) => (
+                    <div key={n.id} className="notif-item" style={{ animationDelay: `${0.42 + i * 0.05}s` }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: n.isRead ? '#e2e8f0' : '#2563eb', marginTop: 5, flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: n.isRead ? 500 : 700, color: n.isRead ? '#64748b' : '#0f172a', margin: '0 0 2px' }}>
+                          {n.title}
+                        </p>
+                        <p style={{ fontSize: 11, color: '#94a3b8', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {n.message}
+                        </p>
+                        <p className="pat-mono" style={{ fontSize: 10, color: '#cbd5e1', margin: '3px 0 0' }}>
+                          {new Date(n.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => navigate('/patient/notifications')}
+                    style={{ width: '100%', marginTop: 12, padding: '9px', borderRadius: 10, border: '1.5px solid #e6f7f5', background: 'white', fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: 'pointer', fontFamily: 'Sora, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                    View all <ArrowRight size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+          </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

@@ -40,12 +40,12 @@ const navConfig = {
 
 const roleTheme = {
   PATIENT: {
-    sidebar: 'linear-gradient(180deg, #0f2027 0%, #1a3a3a 50%, #0d2b2b 100%)',
-    accent: '#0d9488',
-    accentLight: '#5eead4',
+    sidebar: 'linear-gradient(180deg, #0f1e2e 0%, #0d2a3a 50%, #071e2b 100%)',
+    accent: '#0b86bf',
+    accentLight: '#41b3e8',
     label: 'Patient Portal',
-    activeItem: 'rgba(13,148,136,0.2)',
-    activeBorder: '#0d9488',
+    activeItem: 'rgba(14,165,233,0.18)',
+    activeBorder: '#055980',
   },
   DOCTOR: {
     sidebar: 'linear-gradient(180deg, #0a1628 0%, #0d2040 50%, #071220 100%)',
