@@ -79,7 +79,7 @@ export default function RegisterPage() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
             <Heart className="w-5 h-5 text-white" />
           </div>
-          <span className="text-white font-semibold text-xl tracking-tight">SmartHealth</span>
+          <span className="text-white font-semibold text-xl tracking-tight">MediCare</span>
         </div>
 
         <div className="relative z-10 space-y-10">
