@@ -66,8 +66,8 @@ app:
     base-url: ${OPENAI_BASE_URL:https://openrouter.ai/api/v1/chat/completions}
 
   razorpay:
-    key-id: ${RAZORPAY_KEY_ID:rzp_test_SUJwF4qlfTeRvS}
-    key-secret: ${RAZORPAY_KEY_SECRET:1hY78SBeQrXeHSD4CK2nx3od}
+    key-id: ${RAZORPAY_KEY_ID:rzp_test_ShM168qV5jLSOO}
+    key-secret: ${RAZORPAY_KEY_SECRET:lwfm62buDqVTN9FiN1J69kRm}
 
   twilio:
     account-sid: ${TWILIO_ACCOUNT_SID:your-twilio-account-sid}
@@ -75,7 +75,7 @@ app:
     from-number: ${TWILIO_FROM_NUMBER:+1234567890}
 
   notification:
-    mode: ${NOTIFICATION_MODE:dev}   # dev = mock logs | prod = real email+SMS
+    mode: ${NOTIFICATION_MODE:dev}
 
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
 
