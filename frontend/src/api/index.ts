@@ -8,6 +8,8 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+export const AUTH_SESSION_EXPIRED_FLAG = 'auth_session_expired'
+
 let refreshPromise: Promise<string> | null = null
 let isLoggingOut = false
 
@@ -16,17 +18,31 @@ const getErrorText = (error: any) => {
   return serverText.toLowerCase()
 }
 
+const getErrorCode = (error: any) =>
+  String(error?.response?.data?.errorCode || '').toUpperCase()
+
+const AUTH_ERROR_CODES = new Set([
+  'AUTH_UNAUTHORIZED',
+  'AUTH_TOKEN_EXPIRED',
+  'AUTH_INVALID_TOKEN',
+  'AUTH_REFRESH_EXPIRED',
+])
+
 const isAuthError = (error: any) => {
   const status = error?.response?.status
   const message = getErrorText(error)
+  const errorCode = getErrorCode(error)
+
+  if (AUTH_ERROR_CODES.has(errorCode)) return true
   if (status === 401) return true
-  if (status === 403 && /token|jwt|expired|unauthorized|forbidden/.test(message)) return true
+  if (status === 403 && /token|jwt|expired|unauthorized|invalid token/.test(message)) return true
   return false
 }
 
 const forceLogoutToLogin = () => {
   if (isLoggingOut) return
   isLoggingOut = true
+  sessionStorage.setItem(AUTH_SESSION_EXPIRED_FLAG, '1')
   useAuthStore.getState().logout()
   window.location.assign('/login')
 }
@@ -67,6 +83,10 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error?.config || {}
+
+    if (isLoggingOut) {
+      return Promise.reject(error)
+    }
 
     if (isAuthError(error) && !originalRequest._retry) {
       originalRequest._retry = true

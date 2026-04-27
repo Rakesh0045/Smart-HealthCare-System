@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import { authApi } from '../../api'
+import { AUTH_SESSION_EXPIRED_FLAG, authApi } from '../../api'
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Heart, Stethoscope, Shield } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -18,6 +18,13 @@ export default function LoginPage() {
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
   const [activeDemo, setActiveDemo] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (sessionStorage.getItem(AUTH_SESSION_EXPIRED_FLAG) === '1') {
+      sessionStorage.removeItem(AUTH_SESSION_EXPIRED_FLAG)
+      toast.error('Session expired. Please login again.')
+    }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
