@@ -18,6 +18,21 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; 
 
 const STATUS_TABS = ['ALL', 'SCHEDULED', 'RESCHEDULED', 'COMPLETED', 'CANCELLED', 'NO_SHOW']
 
+function formatCancellationReason(reason?: string) {
+  if (!reason) return ''
+  const key = reason.trim()
+  if (!key) return ''
+  const mapped: Record<string, string> = {
+    PERSONAL: 'Personal/Schedule Conflict',
+    MEDICAL: 'Medical Emergency',
+    DOCTOR_UNAVAILABLE: 'Doctor Unavailable',
+    SCHEDULING_CONFLICT: 'Scheduling Conflict',
+    OTHER: 'Other',
+  }
+  if (mapped[key]) return mapped[key]
+  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
 export default function DoctorAppointments() {
   const navigate = useNavigate()
   const [appointments, setAppointments] = useState<any[]>([])
@@ -54,7 +69,8 @@ export default function DoctorAppointments() {
       return (
         a.patientName?.toLowerCase().includes(q) ||
         a.patientEmail?.toLowerCase().includes(q) ||
-        a.patientPhone?.includes(q)
+        a.patientPhone?.includes(q) ||
+        a.cancellationReason?.toLowerCase().includes(q)
       )
     })
 
@@ -289,6 +305,21 @@ export default function DoctorAppointments() {
                       <span style={{ width: 6, height: 6, borderRadius: '50%', background: st.dot }} />
                       {st.label}
                     </span>
+                    {a.status === 'CANCELLED' && a.cancellationReason && (
+                      <p
+                        style={{
+                          margin: '5px 0 0',
+                          fontSize: 10.5,
+                          color: '#9f1239',
+                          maxWidth: 180,
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                        title={formatCancellationReason(a.cancellationReason)}>
+                        Reason: {formatCancellationReason(a.cancellationReason)}
+                      </p>
+                    )}
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     {(a.status === 'SCHEDULED' || a.status === 'RESCHEDULED') && (

@@ -482,10 +482,12 @@ export default function BookAppointment() {
                   <span style={{ fontSize: 12, fontWeight: 600, color: '#0f172a', fontFamily: 'Sora, sans-serif' }}>{v}</span>
                 </div>
               ))}
-              <button onClick={() => { setSelectedDoctor(null); setStep(0) }}
-                style={{ marginTop: 14, width: '100%', padding: '8px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#ef4444', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <X style={{ width: 13, height: 13 }} /> Change Doctor
-              </button>
+              {!isRescheduleMode && (
+                <button onClick={() => { setSelectedDoctor(null); setStep(0) }}
+                  style={{ marginTop: 14, width: '100%', padding: '8px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', color: '#ef4444', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <X style={{ width: 13, height: 13 }} /> Change Doctor
+                </button>
+              )}
             </>
           )}
         </div>
