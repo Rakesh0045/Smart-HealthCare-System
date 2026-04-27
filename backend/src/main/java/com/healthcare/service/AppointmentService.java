@@ -5,6 +5,7 @@ import com.healthcare.dto.request.CancelAppointmentRequest;
 import com.healthcare.dto.response.AppointmentResponse;
 import com.healthcare.entity.*;
 import com.healthcare.enums.AppointmentStatus;
+import com.healthcare.enums.PaymentStatus;
 import com.healthcare.exception.*;
 import com.healthcare.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,7 @@ public class AppointmentService {
     private final DoctorRepository doctorRepo;
     private final PrescriptionRepository prescriptionRepo;
     private final RatingRepository ratingRepo;
+    private final PaymentRepository paymentRepo;
     private final SlotGenerationService slotService;
     private final NotificationService notificationService;
     private final AuditLogService auditLogService;
@@ -95,8 +97,9 @@ public class AppointmentService {
         if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
             throw new BadRequestException("Cannot cancel a completed appointment.");
         }
-        if (appointment.getAppointmentDate().isBefore(LocalDate.now())) {
-            throw new BadRequestException("Cannot cancel past appointments.");
+        if (!appointment.getAppointmentDate().isAfter(LocalDate.now())) {
+            throw new BadRequestException(
+                    "Appointments can only be cancelled before the appointment date. Same-day absences must be marked as no-show by the doctor.");
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
@@ -128,12 +131,15 @@ public class AppointmentService {
         Appointment old = getAndValidateAppointment(appointmentId);
         validateOwnership(old, userId);
 
-        if (old.getStatus() != AppointmentStatus.SCHEDULED && old.getStatus() != AppointmentStatus.RESCHEDULED) {
-            throw new BadRequestException("Only scheduled appointments can be rescheduled.");
+        boolean isNoShowReschedule = old.getStatus() == AppointmentStatus.NO_SHOW;
+        if (old.getStatus() != AppointmentStatus.SCHEDULED
+                && old.getStatus() != AppointmentStatus.RESCHEDULED
+                && !isNoShowReschedule) {
+            throw new BadRequestException("Only scheduled or missed appointments can be rescheduled.");
         }
 
         // Check reschedule count - allow maximum 1 reschedule
-        if (old.getRescheduleCount() >= 1) {
+        if (!isNoShowReschedule && old.getRescheduleCount() >= 1) {
             throw new ConflictException(
                     "You can only reschedule an appointment once. Please contact support for further changes.");
         }
@@ -150,6 +156,7 @@ public class AppointmentService {
         old.setStartTime(req.getStartTime());
         old.setEndTime(endTime);
         old.setStatus(AppointmentStatus.RESCHEDULED);
+        old.setIsNoShow(false);
         old.setReason(req.getReason() != null ? req.getReason() : old.getReason());
         old.setRescheduleCount(old.getRescheduleCount() + 1);
         // Preserve payment status for rescheduled appointments
@@ -162,7 +169,8 @@ public class AppointmentService {
     }
 
     @Transactional
-    public AppointmentResponse completeAppointment(Long appointmentId, String doctorNotes, Long userId) {
+    public AppointmentResponse completeAppointment(Long appointmentId, String doctorNotes, Boolean paymentCollected,
+            Long userId) {
         Appointment appointment = getAndValidateAppointment(appointmentId);
 
         if (!appointment.getDoctor().getUser().getId().equals(userId)) {
@@ -174,12 +182,46 @@ public class AppointmentService {
 
         appointment.setStatus(AppointmentStatus.COMPLETED);
         appointment.setDoctorNotes(doctorNotes);
+        if (Boolean.TRUE.equals(paymentCollected)) {
+            markClinicPaymentAsPaid(appointment);
+        }
         appointment = appointmentRepo.save(appointment);
 
         auditLogService.log(userId, "APPOINTMENT_COMPLETED", "Appointment",
                 appointmentId, "Marked completed by Dr. " + appointment.getDoctor().getUser().getName());
 
         return mapToResponse(appointment);
+    }
+
+    private void markClinicPaymentAsPaid(Appointment appointment) {
+        if (appointment.getPaymentStatus() == PaymentStatus.PAID) {
+            return;
+        }
+
+        Payment payment = paymentRepo.findByAppointmentId(appointment.getId())
+                .orElseGet(() -> Payment.builder()
+                        .appointment(appointment)
+                        .amount(appointment.getDoctor().getConsultationFee())
+                        .razorpayOrderId("CLINIC-" + appointment.getId())
+                        .currency("INR")
+                        .build());
+        payment.setStatus(PaymentStatus.PAID);
+        payment.setAmount(appointment.getDoctor().getConsultationFee());
+        if (payment.getRazorpayOrderId() == null || payment.getRazorpayOrderId().isBlank()) {
+            payment.setRazorpayOrderId("CLINIC-" + appointment.getId());
+        }
+        if (payment.getRazorpayPaymentId() == null || payment.getRazorpayPaymentId().isBlank()) {
+            payment.setRazorpayPaymentId("CLINIC-PAY-" + appointment.getId());
+        }
+        if (payment.getRazorpaySignature() == null || payment.getRazorpaySignature().isBlank()) {
+            payment.setRazorpaySignature("CLINIC-COLLECTED");
+        }
+        payment.setCurrency(payment.getCurrency() != null ? payment.getCurrency() : "INR");
+        paymentRepo.save(payment);
+
+        appointment.setPaymentStatus(PaymentStatus.PAID);
+        notificationService.sendPaymentConfirmation(
+                appointment.getPatient().getUser(), appointment.getDoctor().getConsultationFee());
     }
 
     @Transactional
@@ -195,8 +237,10 @@ public class AppointmentService {
         if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
             throw new BadRequestException("Cannot mark a completed appointment as no-show.");
         }
-        if (appointment.getAppointmentDate().isAfter(LocalDate.now())) {
-            throw new BadRequestException("Can only mark past appointments as no-show.");
+        if (appointment.getAppointmentDate().isAfter(LocalDate.now())
+                || (appointment.getAppointmentDate().equals(LocalDate.now())
+                        && LocalTime.now().isBefore(appointment.getStartTime()))) {
+            throw new BadRequestException("Can only mark appointments as no-show after their start time.");
         }
 
         appointment.setStatus(AppointmentStatus.NO_SHOW);

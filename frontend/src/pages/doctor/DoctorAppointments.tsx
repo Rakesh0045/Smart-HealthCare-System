@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { appointmentApi } from '../../api'
 import { EmptyState, LoadingSpinner } from '../../components/common'
-import { Calendar, CheckCircle, Search, FileText, Filter, ChevronDown, MoreHorizontal, X } from 'lucide-react'
+import { Calendar, CheckCircle, Search, FileText, Filter, ChevronDown, MoreHorizontal, X, UserX } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const generateAvatarUrl = (name?: string, size: number = 40) => 
@@ -27,10 +27,13 @@ function formatCancellationReason(reason?: string) {
     MEDICAL: 'Medical Emergency',
     DOCTOR_UNAVAILABLE: 'Doctor Unavailable',
     SCHEDULING_CONFLICT: 'Scheduling Conflict',
-    OTHER: 'Other',
   }
   if (mapped[key]) return mapped[key]
-  return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  // For enum-style values keep friendly formatting; otherwise preserve doctor-visible free text as entered.
+  if (/^[A-Z_]+$/.test(key)) {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  }
+  return key
 }
 
 export default function DoctorAppointments() {
@@ -40,6 +43,9 @@ export default function DoctorAppointments() {
   const [filter, setFilter] = useState('ALL')
   const [search, setSearch] = useState('')
   const [completingId, setCompletingId] = useState<number | null>(null)
+  const [noShowId, setNoShowId] = useState<number | null>(null)
+  const [completeModal, setCompleteModal] = useState<any>(null)
+  const [completeNotes, setCompleteNotes] = useState('')
 
   const load = () => {
     setLoading(true)
@@ -47,14 +53,30 @@ export default function DoctorAppointments() {
   }
   useEffect(() => { load() }, [])
 
-  const handleComplete = async (id: number) => {
-    const notes = window.prompt('Add consultation notes (optional):') ?? ''
-    setCompletingId(id)
+  const openCompleteModal = (appointment: any) => {
+    setCompleteNotes('')
+    setCompleteModal(appointment)
+  }
+
+  const handleComplete = async (paymentCollected: boolean) => {
+    if (!completeModal) return
+    setCompletingId(completeModal.id)
     try {
-      await appointmentApi.complete(id, notes)
+      await appointmentApi.complete(completeModal.id, completeNotes, paymentCollected)
       toast.success('Appointment marked as completed!')
+      setCompleteModal(null)
       load()
     } finally { setCompletingId(null) }
+  }
+
+  const handleNoShow = async (id: number) => {
+    if (!window.confirm('Mark this patient as no-show? The patient will be notified and can reschedule.')) return
+    setNoShowId(id)
+    try {
+      await appointmentApi.markNoShow(id)
+      toast.success('Appointment marked as no-show')
+      load()
+    } finally { setNoShowId(null) }
   }
 
   const counts: Record<string, number> = { ALL: appointments.length }
@@ -88,7 +110,7 @@ export default function DoctorAppointments() {
 
         .appt-table-row {
           display: grid;
-          grid-template-columns: 44px 2fr 1fr 1fr 1fr 140px;
+          grid-template-columns: 44px 2fr 1fr 1fr 1fr 190px;
           gap: 12px;
           padding: 12px 20px;
           align-items: center;
@@ -311,10 +333,10 @@ export default function DoctorAppointments() {
                           margin: '5px 0 0',
                           fontSize: 10.5,
                           color: '#9f1239',
-                          maxWidth: 180,
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
+                          maxWidth: 260,
+                          whiteSpace: 'normal',
+                          overflowWrap: 'anywhere',
+                          lineHeight: 1.35,
                         }}
                         title={formatCancellationReason(a.cancellationReason)}>
                         Reason: {formatCancellationReason(a.cancellationReason)}
@@ -323,14 +345,24 @@ export default function DoctorAppointments() {
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     {(a.status === 'SCHEDULED' || a.status === 'RESCHEDULED') && (
-                      <button
-                        className="action-btn"
-                        onClick={() => handleComplete(a.id)}
-                        disabled={completingId === a.id}
-                        style={{ background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white' }}
-                      >
-                        {completingId === a.id ? '...' : '✓ Complete'}
-                      </button>
+                      <>
+                        <button
+                          className="action-btn"
+                          onClick={() => openCompleteModal(a)}
+                          disabled={completingId === a.id}
+                          style={{ background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white' }}
+                        >
+                          {completingId === a.id ? '...' : 'Complete'}
+                        </button>
+                        <button
+                          className="action-btn"
+                          onClick={() => handleNoShow(a.id)}
+                          disabled={noShowId === a.id}
+                          style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                        >
+                          <UserX size={12} /> {noShowId === a.id ? '...' : 'No-show'}
+                        </button>
+                      </>
                     )}
                     {a.status === 'COMPLETED' && !a.hasPrescription && (
                       <button
@@ -356,6 +388,41 @@ export default function DoctorAppointments() {
           )}
         </div>
       </div>
+
+      {completeModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ width: 'min(480px, 100%)', background: 'white', borderRadius: 16, boxShadow: '0 24px 70px rgba(15,23,42,0.24)', overflow: 'hidden' }}>
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+              <h2 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', margin: 0 }}>Complete appointment</h2>
+              <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>Dr. consultation with {completeModal.patientName}</p>
+            </div>
+            <div style={{ padding: 20 }}>
+              {completeModal.paymentStatus !== 'PAID' && (
+                <div style={{ padding: 12, borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
+                  This appointment is marked payment pending. Confirm payment collection before completing it.
+                </div>
+              )}
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Consultation notes</label>
+              <textarea
+                value={completeNotes}
+                onChange={e => setCompleteNotes(e.target.value)}
+                rows={4}
+                placeholder="Add consultation notes..."
+                style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: 12, fontFamily: 'Sora, sans-serif', fontSize: 13, outline: 'none' }}
+              />
+            </div>
+            <div style={{ padding: 16, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button onClick={() => setCompleteModal(null)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+              {completeModal.paymentStatus !== 'PAID' && (
+                <button disabled={completingId === completeModal.id} onClick={() => handleComplete(false)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', fontWeight: 700, cursor: 'pointer' }}>Complete unpaid</button>
+              )}
+              <button disabled={completingId === completeModal.id} onClick={() => handleComplete(completeModal.paymentStatus !== 'PAID')} style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>
+                {completingId === completeModal.id ? 'Saving...' : completeModal.paymentStatus === 'PAID' ? 'Complete' : 'Payment collected'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

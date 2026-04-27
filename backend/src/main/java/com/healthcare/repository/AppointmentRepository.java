@@ -17,7 +17,7 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
     List<Appointment> findByDoctorIdAndAppointmentDate(Long doctorId, LocalDate date);
     
     @Query("SELECT a FROM Appointment a WHERE a.doctor.id = :doctorId AND " +
-           "a.appointmentDate = :date AND a.status NOT IN ('CANCELLED') AND " +
+           "a.appointmentDate = :date AND a.status NOT IN ('CANCELLED', 'NO_SHOW') AND " +
            "((a.startTime < :endTime AND a.endTime > :startTime))")
     List<Appointment> findConflictingAppointments(@Param("doctorId") Long doctorId,
                                                    @Param("date") LocalDate date,

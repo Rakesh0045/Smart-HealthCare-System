@@ -3,6 +3,7 @@ package com.healthcare.service;
 import com.healthcare.dto.response.SlotResponse;
 import com.healthcare.entity.Appointment;
 import com.healthcare.entity.DoctorAvailability;
+import com.healthcare.enums.AppointmentStatus;
 import com.healthcare.enums.DayOfWeekEnum;
 import com.healthcare.repository.AppointmentRepository;
 import com.healthcare.repository.DoctorAvailabilityRepository;
@@ -52,6 +53,8 @@ public class SlotGenerationService {
                 .findByDoctorIdAndAppointmentDate(doctorId, date);
 
         List<LocalTime[]> bookedSlots = bookedAppointments.stream()
+                .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED
+                        && a.getStatus() != AppointmentStatus.NO_SHOW)
                 .map(a -> new LocalTime[]{a.getStartTime(), a.getEndTime()})
                 .toList();
 

@@ -57,6 +57,8 @@ export default function PatientDashboard() {
 
   const upcoming = appointments.filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED')
   const completed = appointments.filter(a => a.status === 'COMPLETED')
+  const noShowAppointments = appointments.filter(a => a.status === 'NO_SHOW')
+  const latestNoShow = noShowAppointments[0]
   const nextAppointment = [...upcoming].sort((a, b) =>
     new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())[0]
   const followUpReminder = [...prescriptions]
@@ -139,6 +141,9 @@ export default function PatientDashboard() {
     if (date) params.set('date', date)
     return `/patient/book${params.toString() ? `?${params.toString()}` : ''}`
   }
+
+  const buildReschedulePath = (appt: any) =>
+    `/patient/book?reschedule=${appt.id}&doctorId=${appt.doctorId}`
 
   const isFollowUpOverdue = followUpReminder
     ? new Date(followUpReminder.followUpDate).getTime() < Date.now()
@@ -480,6 +485,26 @@ export default function PatientDashboard() {
         </div>
 
         {/* ─────── Main responsive grid ─────── */}
+        {latestNoShow && (
+          <div className="teal-card" style={{ marginBottom: 24, padding: 18, borderColor: '#fed7aa', background: '#fff7ed', display: 'flex', alignItems: 'center', gap: 14, animationDelay: '0.18s' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <AlarmClock size={20} color="#c2410c" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 800, color: '#9a3412', margin: '0 0 3px' }}>
+                Missed appointment with Dr. {latestNoShow.doctorName}
+              </p>
+              <p style={{ fontSize: 12, color: '#9a3412', margin: 0 }}>
+                {new Date(latestNoShow.appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {latestNoShow.startTime?.slice(0, 5)}. Pick a new slot to continue your care.
+              </p>
+            </div>
+            <button className="teal-btn-primary" style={{ background: 'linear-gradient(135deg, #ea580c, #f97316)', boxShadow: '0 4px 14px rgba(249,115,22,0.25)' }}
+              onClick={() => navigate(buildReschedulePath(latestNoShow))}>
+              <Calendar size={14} /> Reschedule
+            </button>
+          </div>
+        )}
+
         <div className="pat-main-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 1fr) minmax(290px, 340px)', gap: 20 }}>
 
           {/* ─── Next Appointment ─── */}
@@ -659,7 +684,7 @@ export default function PatientDashboard() {
                 { label: 'Total Visits', value: appointments.length, color: '#0d9488', bg: '#f0fdfa', border: '#ccfbf1' },
                 { label: 'Last Fee', value: completed[0]?.consultationFee ? `₹${completed[0].consultationFee}` : '—', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
                 { label: 'Completed', value: completed.length, color: '#10b981', bg: '#f0fdf4', border: '#bbf7d0' },
-                { label: 'Upcoming', value: upcoming.length, color: '#f59e0b', bg: '#fffbeb', border: '#fde68a' },
+                { label: noShowAppointments.length ? 'Missed' : 'Upcoming', value: noShowAppointments.length || upcoming.length, color: noShowAppointments.length ? '#ea580c' : '#f59e0b', bg: noShowAppointments.length ? '#fff7ed' : '#fffbeb', border: noShowAppointments.length ? '#fed7aa' : '#fde68a' },
               ].map(item => (
                 <div key={item.label} style={{ padding: '12px', borderRadius: 12, background: item.bg, border: `1px solid ${item.border}`, textAlign: 'center' }}>
                   <p style={{ fontSize: 20, fontWeight: 700, color: item.color, margin: '0 0 3px' }}>{item.value}</p>
@@ -672,8 +697,8 @@ export default function PatientDashboard() {
             <p style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>Recent</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {appointments.slice(0, 2).map((a, i) => {
-                const statusColor = a.status === 'COMPLETED' ? '#10b981' : a.status === 'CANCELLED' ? '#ef4444' : '#0d9488'
-                const statusBg = a.status === 'COMPLETED' ? 'rgba(16,185,129,0.1)' : a.status === 'CANCELLED' ? 'rgba(239,68,68,0.1)' : 'rgba(13,148,136,0.1)'
+                const statusColor = a.status === 'COMPLETED' ? '#10b981' : a.status === 'CANCELLED' ? '#ef4444' : a.status === 'NO_SHOW' ? '#ea580c' : '#0d9488'
+                const statusBg = a.status === 'COMPLETED' ? 'rgba(16,185,129,0.1)' : a.status === 'CANCELLED' ? 'rgba(239,68,68,0.1)' : a.status === 'NO_SHOW' ? '#fff7ed' : 'rgba(13,148,136,0.1)'
                 return (
                   <div key={a.id} className="appt-mini" style={{ animationDelay: `${0.35 + i * 0.05}s` }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: statusColor, flexShrink: 0 }} />

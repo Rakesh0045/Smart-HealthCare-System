@@ -74,9 +74,15 @@ public class AppointmentController {
     @PatchMapping("/{id}/complete")
     @PreAuthorize("hasRole('DOCTOR')")
     public ResponseEntity<ApiResponse<AppointmentResponse>> complete(@PathVariable Long id,
-            @RequestBody Map<String, String> body, @AuthenticationPrincipal UserDetails ud) {
+            @RequestBody Map<String, Object> body, @AuthenticationPrincipal UserDetails ud) {
+        Object paymentCollected = body.get("paymentCollected");
         return ResponseEntity.ok(ApiResponse.success(
-                appointmentService.completeAppointment(id, body.get("doctorNotes"), uid(ud)), "Completed"));
+                appointmentService.completeAppointment(id, String.valueOf(body.getOrDefault("doctorNotes", "")),
+                        paymentCollected instanceof Boolean
+                                ? (Boolean) paymentCollected
+                                : Boolean.valueOf(String.valueOf(paymentCollected)),
+                        uid(ud)),
+                "Completed"));
     }
 
     @PatchMapping("/{id}/no-show")

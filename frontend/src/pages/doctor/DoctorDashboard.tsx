@@ -7,7 +7,7 @@ import {
   Bell, TrendingUp, ArrowUpRight, ChevronRight,
   Activity, MoreVertical, Search, Filter, Star,
   UserCheck, Stethoscope, DollarSign, BarChart2,
-  Heart, Video, Phone, ChevronDown
+  Heart, Video, Phone, ChevronDown, UserX
 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -40,6 +40,9 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [monthlyData, setMonthlyData] = useState<any[]>([])
+  const [completeModal, setCompleteModal] = useState<any>(null)
+  const [completeNotes, setCompleteNotes] = useState('')
+  const [completingId, setCompletingId] = useState<number | null>(null)
 
   const load = () => {
     const today = new Date().toISOString().split('T')[0]
@@ -49,7 +52,7 @@ export default function DoctorDashboard() {
       notificationApi.getAll(),
     ]).then(([all, tod, notif]) => {
       setAppointments(all.data.data || [])
-      setTodayAppointments(tod.data.data || [])
+      setTodayAppointments((tod.data.data || []).filter((a: any) => a.status !== 'CANCELLED'))
       setNotifications((notif.data.data || []).slice(0, 4))
 
       // Calculate monthly completed appointments
@@ -116,9 +119,26 @@ export default function DoctorDashboard() {
   const revenue = appointments.filter(a => a.paymentStatus === 'PAID').reduce((s, a) => s + (a.consultationFee || 0), 0)
   const unreadNotif = notifications.filter(n => !n.isRead).length
 
-  const handleComplete = async (id: number) => {
-    const notes = prompt('Add consultation notes (optional):') || ''
-    await appointmentApi.complete(id, notes)
+  const openCompleteModal = (appointment: any) => {
+    setCompleteNotes('')
+    setCompleteModal(appointment)
+  }
+
+  const handleComplete = async (paymentCollected: boolean) => {
+    if (!completeModal) return
+    setCompletingId(completeModal.id)
+    try {
+      await appointmentApi.complete(completeModal.id, completeNotes, paymentCollected)
+      setCompleteModal(null)
+      load()
+    } finally {
+      setCompletingId(null)
+    }
+  }
+
+  const handleNoShow = async (id: number) => {
+    if (!confirm('Mark this patient as no-show? The patient will be notified and can reschedule.')) return
+    await appointmentApi.markNoShow(id)
     load()
   }
 
@@ -397,7 +417,7 @@ export default function DoctorDashboard() {
               </div>
 
               {/* Table header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 1fr 120px', gap: 12, padding: '8px 16px', marginBottom: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 1fr 180px', gap: 12, padding: '8px 16px', marginBottom: 8 }}>
                 {['#', 'Patient Name', 'Date', 'Time', 'Status', 'Action'].map(h => (
                   <span key={h} style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
                 ))}
@@ -413,7 +433,7 @@ export default function DoctorDashboard() {
                 ) : filteredToday.slice(0, 6).map((a, idx) => {
                   const st = STATUS_MAP[a.status] || STATUS_MAP.SCHEDULED
                   return (
-                    <div key={a.id} className="appt-row" style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 1fr 120px', gap: 12, animationDelay: `${idx * 0.05}s` }}>
+                    <div key={a.id} className="appt-row" style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 1fr 180px', gap: 12, animationDelay: `${idx * 0.05}s` }}>
                       <span className="pv-mono" style={{ fontSize: 12, color: '#94a3b8', alignSelf: 'center' }}>
                         {String(idx + 1).padStart(2, '0')}
                       </span>
@@ -441,9 +461,14 @@ export default function DoctorDashboard() {
                       </div>
                       <div style={{ display: 'flex', gap: 6, alignSelf: 'center' }}>
                         {(a.status === 'SCHEDULED' || a.status === 'RESCHEDULED') && (
-                          <button onClick={() => handleComplete(a.id)} className="complete-btn">
-                            Complete
-                          </button>
+                          <>
+                            <button onClick={() => openCompleteModal(a)} className="complete-btn">
+                              Complete
+                            </button>
+                            <button onClick={() => handleNoShow(a.id)} className="complete-btn" style={{ background: '#475569', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                              <UserX size={12} /> No-show
+                            </button>
+                          </>
                         )}
                         {a.status === 'COMPLETED' && !a.hasPrescription && (
                           <button onClick={() => navigate('/doctor/prescriptions')} className="complete-btn" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
@@ -519,6 +544,40 @@ export default function DoctorDashboard() {
           </div>
         </div>
       </div>
+      {completeModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ width: 'min(480px, 100%)', background: 'white', borderRadius: 16, boxShadow: '0 24px 70px rgba(15,23,42,0.24)', overflow: 'hidden' }}>
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
+              <h2 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', margin: 0 }}>Complete appointment</h2>
+              <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>Dr. consultation with {completeModal.patientName}</p>
+            </div>
+            <div style={{ padding: 20 }}>
+              {completeModal.paymentStatus !== 'PAID' && (
+                <div style={{ padding: 12, borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
+                  This appointment is payment pending. Confirm whether payment was collected at the clinic.
+                </div>
+              )}
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Consultation notes</label>
+              <textarea
+                value={completeNotes}
+                onChange={e => setCompleteNotes(e.target.value)}
+                rows={4}
+                placeholder="Add consultation notes..."
+                style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: 12, fontFamily: 'Sora, sans-serif', fontSize: 13, outline: 'none' }}
+              />
+            </div>
+            <div style={{ padding: 16, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button onClick={() => setCompleteModal(null)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+              {completeModal.paymentStatus !== 'PAID' && (
+                <button disabled={completingId === completeModal.id} onClick={() => handleComplete(false)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', fontWeight: 700, cursor: 'pointer' }}>Complete unpaid</button>
+              )}
+              <button disabled={completingId === completeModal.id} onClick={() => handleComplete(completeModal.paymentStatus !== 'PAID')} style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>
+                {completingId === completeModal.id ? 'Saving...' : completeModal.paymentStatus === 'PAID' ? 'Complete' : 'Payment collected'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

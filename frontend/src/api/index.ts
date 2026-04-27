@@ -152,8 +152,9 @@ export const appointmentApi = {
   cancel: (id: number, reason?: { reason?: string; reasonText?: string }) => 
     api.delete(`/appointments/${id}/cancel`, { data: reason }),
   reschedule: (id: number, data: any) => api.put(`/appointments/${id}/reschedule`, data),
-  complete: (id: number, doctorNotes: string) =>
-    api.patch(`/appointments/${id}/complete`, { doctorNotes }),
+  complete: (id: number, doctorNotes: string, paymentCollected = false) =>
+    api.patch(`/appointments/${id}/complete`, { doctorNotes, paymentCollected }),
+  markNoShow: (id: number) => api.patch(`/appointments/${id}/no-show`),
 }
 
 export const prescriptionApi = {

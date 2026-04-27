@@ -6,7 +6,7 @@ import {
   Calendar, Plus, Star, X, Clock, Stethoscope, ChevronDown,
   CheckCircle2, XCircle, RefreshCw, CreditCard, FileText,
   AlertCircle, ArrowUpRight, Search, CalendarCheck,
-  CalendarX, CalendarClock, Activity, Video,
+  CalendarX, CalendarClock, Activity, Video, AlarmClock,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -25,6 +25,12 @@ function fmtRelative(d: string) {
   if (diff === 1) return 'Tomorrow'
   if (diff < 7) return `In ${diff}d`
   return `In ${Math.ceil(diff / 7)}w`
+}
+
+function isAfterToday(date: string) {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const d = new Date(date); d.setHours(0, 0, 0, 0)
+  return d.getTime() > today.getTime()
 }
 
 /* ─── Status config ───────────────────────────────────────── */
@@ -47,6 +53,7 @@ const TABS = [
   { key: 'COMPLETED',   label: 'Completed',   icon: CalendarCheck },
   { key: 'CANCELLED',   label: 'Cancelled',   icon: CalendarX },
   { key: 'RESCHEDULED', label: 'Rescheduled', icon: RefreshCw },
+  { key: 'NO_SHOW',     label: 'No Show',     icon: AlarmClock },
 ]
 
 const ACCENTS = ['#2563eb', '#7c3aed', '#0891b2', '#16a34a', '#d97706', '#e11d48']
@@ -86,7 +93,9 @@ function DetailModal({ appt, onClose, onReschedule, onCancel, onRate }: {
   const navigate = useNavigate()
   const sm = STATUS_CFG[appt.status] || STATUS_CFG.SCHEDULED
   const pm = appt.paymentStatus ? PAYMENT_CFG[appt.paymentStatus] : null
-  const canAct = appt.status === 'SCHEDULED' || appt.status === 'RESCHEDULED'
+  const canScheduledAction = appt.status === 'SCHEDULED' || appt.status === 'RESCHEDULED'
+  const canCancel = canScheduledAction && isAfterToday(appt.appointmentDate)
+  const canReschedule = canScheduledAction || appt.status === 'NO_SHOW'
   const accent = sm.accent
 
   return (
@@ -129,7 +138,7 @@ function DetailModal({ appt, onClose, onReschedule, onCancel, onRate }: {
                   {pm.label}
                 </span>
               )}
-              {(appt.status === 'SCHEDULED' || appt.status === 'RESCHEDULED') && (
+              {canCancel && (
                 <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>
                   · {fmtRelative(appt.appointmentDate)}
                 </span>
@@ -204,7 +213,7 @@ function DetailModal({ appt, onClose, onReschedule, onCancel, onRate }: {
         <div style={M.footer}>
           <button style={M.cancelBtn} onClick={onClose}>Close</button>
           <div style={{ display: 'flex', gap: 8, flex: 1 }}>
-            {canAct && (
+            {canReschedule && (
               <>
                 <motion.button
                   style={{ ...M.actionBtn, flex: 1, background: '#f8fafc', color: '#475569', border: '1.5px solid #e5e7eb' }}
@@ -212,12 +221,14 @@ function DetailModal({ appt, onClose, onReschedule, onCancel, onRate }: {
                   onClick={onReschedule}>
                   <RefreshCw size={13} /> Reschedule
                 </motion.button>
+                {canCancel && (
                 <motion.button
                   style={{ ...M.actionBtn, flex: 1, background: '#fff1f2', color: '#e11d48', border: '1.5px solid #fecdd3' }}
                   whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                   onClick={onCancel}>
                   <XCircle size={13} /> Cancel
                 </motion.button>
+                )}
               </>
             )}
             {appt.status === 'COMPLETED' && !appt.hasRating && (
@@ -332,7 +343,10 @@ function CancelModal({ appointment, onConfirm, onReschedule, onClose, loading }:
   const submit = () => {
     if (!selected) { setError('Please select a reason to continue'); return }
     if (selected === 'OTHER' && !otherText.trim()) { setError('Please describe your reason'); return }
-    onConfirm({ reason: selected, reasonText: selected === 'OTHER' ? otherText.trim() : undefined })
+    onConfirm({
+      reason: selected === 'OTHER' ? otherText.trim() : selected,
+      reasonText: selected === 'OTHER' ? otherText.trim() : undefined,
+    })
   }
 
   return (
@@ -711,7 +725,9 @@ export default function PatientAppointments() {
               const isOpen = expanded === a.id
               const accent = ACCENTS[idx % ACCENTS.length]
               const initials = (a.doctorName || 'D').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
-              const canAct = a.status === 'SCHEDULED' || a.status === 'RESCHEDULED'
+              const canScheduledAction = a.status === 'SCHEDULED' || a.status === 'RESCHEDULED'
+              const canCancel = canScheduledAction && isAfterToday(a.appointmentDate)
+              const canReschedule = canScheduledAction || a.status === 'NO_SHOW'
 
               return (
                 <div key={a.id} style={{
@@ -770,10 +786,16 @@ export default function PatientAppointments() {
                         onClick={() => setDetailModal(a)}>
                         <ArrowUpRight size={12} /> Details
                       </button>
-                      {canAct && (
+                      {canCancel && (
                         <button className="act-red" style={{ ...S.actBtn, color: '#e11d48', borderColor: '#fecdd3', background: '#fff1f2' }}
                           onClick={() => setCancelModal(a)}>
                           <XCircle size={11} /> Cancel
+                        </button>
+                      )}
+                      {a.status === 'NO_SHOW' && (
+                        <button className="act-btn" style={S.actBtn}
+                          onClick={() => navigate(`/patient/book?reschedule=${a.id}&doctorId=${a.doctorId}`)}>
+                          <RefreshCw size={11} /> Reschedule
                         </button>
                       )}
                       {a.status === 'COMPLETED' && !a.hasRating && (
@@ -873,18 +895,20 @@ export default function PatientAppointments() {
                                   onClick={() => setDetailModal(a)}>
                                   <ArrowUpRight size={12} /> Full Details <ArrowUpRight size={11} style={{ marginLeft: 'auto' }} />
                                 </motion.button>
-                                {canAct && (
+                                {canReschedule && (
                                   <>
                                     <motion.button className="act-btn" style={{ ...S.drawerActBtn }}
                                       whileHover={{ x: 2 }}
                                       onClick={() => navigate(`/patient/book?reschedule=${a.id}&doctorId=${a.doctorId}`)}>
                                       <RefreshCw size={12} /> Reschedule <ArrowUpRight size={11} style={{ marginLeft: 'auto' }} />
                                     </motion.button>
+                                    {canCancel && (
                                     <motion.button className="act-red" style={{ ...S.drawerActBtn, color: '#e11d48', borderColor: '#fecdd3', background: '#fff1f2' }}
                                       whileHover={{ x: 2 }}
                                       onClick={() => setCancelModal(a)}>
                                       <XCircle size={12} /> Cancel Appointment <ArrowUpRight size={11} style={{ marginLeft: 'auto' }} />
                                     </motion.button>
+                                    )}
                                   </>
                                 )}
                                 {a.status === 'COMPLETED' && !a.hasRating && (
@@ -908,7 +932,7 @@ export default function PatientAppointments() {
                           {/* Footer hint */}
                           <div style={S.drawerFooter}>
                             <span style={S.drawerHint}>Click "Full Details" to open the appointment detail modal</span>
-                            {(a.status === 'SCHEDULED' || a.status === 'RESCHEDULED') && (
+                            {canCancel && (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                 <CalendarClock size={12} style={{ color: sm.accent }} />
                                 <span style={{ fontSize: 12, color: '#64748b' }}>
