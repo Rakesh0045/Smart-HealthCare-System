@@ -28,14 +28,15 @@ function fmtDate(d: string, opts?: Intl.DateTimeFormatOptions) {
 }
 function fmtRelative(d: string) {
   const diff = Math.ceil((new Date(d).getTime() - Date.now()) / 86400000)
-  if (diff < 0) return 'Overdue'; if (diff === 0) return 'Today'
-  if (diff === 1) return 'Tomorrow'; if (diff < 7) return `In ${diff}d`
+  if (diff < 0) return 'Overdue'
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Tomorrow'
+  if (diff < 7) return `In ${diff}d`
   return `In ${Math.ceil(diff / 7)}w`
 }
 function isOverdue(d: string) {
   return new Date(d).getTime() < Date.now()
 }
-
 function buildFollowUpBookingPath(doctorName?: string, specialization?: string, date?: string) {
   const params = new URLSearchParams()
   if (doctorName) params.set('doctorName', doctorName)
@@ -44,59 +45,55 @@ function buildFollowUpBookingPath(doctorName?: string, specialization?: string, 
   return `/patient/book${params.toString() ? `?${params.toString()}` : ''}`
 }
 
-const CHIP = {
-  frequency: { bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8' },
-  duration:  { bg: '#f0fdf4', border: '#bbf7d0', color: '#15803d' },
-  note:      { bg: '#fefce8', border: '#fde68a', color: '#a16207' },
-}
+/* ─── Accent palette ─────────────────────────────────────── */
+const ACCENTS = ['#2563eb', '#7c3aed', '#0891b2', '#16a34a', '#d97706', '#dc2626']
 
-/* ─── Accent palette (cycles per row index) ─────────────── */
-const ACCENTS = [
-  '#2563eb', '#7c3aed', '#0891b2', '#16a34a', '#d97706', '#e11d48',
-]
+const CHIP_FREQ = { background: '#eff6ff', borderColor: '#bfdbfe', color: '#1d4ed8', border: '1px solid #bfdbfe' }
+const CHIP_DUR  = { background: '#f0fdf4', borderColor: '#bbf7d0', color: '#15803d', border: '1px solid #bbf7d0' }
+const CHIP_NOTE = { background: '#fefce8', borderColor: '#fde68a', color: '#a16207', border: '1px solid #fde68a' }
 
 /* ─── Skeleton ───────────────────────────────────────────── */
 function Skeleton() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {[1,2,3,4].map(i => (
-        <div key={i} style={{ background: '#fff', borderRadius: 12, border: '1px solid #f1f5f9', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f1f5f9', animation: 'sk 1.4s ease infinite', flexShrink: 0 }} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: '#fff', borderRadius: 12, border: '1px solid #f1f5f9', overflow: 'hidden' }}>
+      {[1, 2, 3, 4].map(i => (
+        <div key={i} style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid #f8fafc' }}>
+          <div style={{ width: 38, height: 38, borderRadius: 10, background: '#f1f5f9', animation: 'sk 1.4s ease infinite', flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div style={{ height: 13, background: '#f1f5f9', borderRadius: 5, marginBottom: 7, animation: 'sk 1.4s ease infinite', width: '40%' }} />
-            <div style={{ height: 10, background: '#f8fafc', borderRadius: 5, animation: 'sk 1.4s ease infinite', width: '60%' }} />
+            <div style={{ height: 12, background: '#f1f5f9', borderRadius: 4, marginBottom: 7, width: '30%', animation: 'sk 1.4s ease infinite' }} />
+            <div style={{ height: 10, background: '#f8fafc', borderRadius: 4, width: '50%', animation: 'sk 1.4s ease infinite' }} />
           </div>
-          <div style={{ width: 80, height: 28, background: '#f1f5f9', borderRadius: 8, animation: 'sk 1.4s ease infinite' }} />
+          <div style={{ width: 80, height: 24, background: '#f1f5f9', borderRadius: 6, animation: 'sk 1.4s ease infinite' }} />
         </div>
       ))}
-      <style>{`@keyframes sk{0%,100%{opacity:.5}50%{opacity:1}}`}</style>
     </div>
   )
 }
 
-/* ─── Full-detail Modal ──────────────────────────────────── */
+/* ─── Detail Modal ───────────────────────────────────────── */
 function DetailModal({ rx, onClose, onDownload, downloading }: {
   rx: Prescription; onClose: () => void
   onDownload: (id: number) => void; downloading: boolean
 }) {
   const navigate = useNavigate()
   const accent = ACCENTS[rx.id % ACCENTS.length]
+
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       style={M.overlay} onClick={onClose}>
       <motion.div
-        initial={{ opacity: 0, y: 28, scale: 0.96 }}
+        initial={{ opacity: 0, y: 20, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 12, scale: 0.97 }}
-        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+        exit={{ opacity: 0, y: 10, scale: 0.98 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 35 }}
         style={M.modal} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ ...M.mHead, borderTop: `3px solid ${accent}` }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ ...M.mAvatar, background: `linear-gradient(135deg,${accent},${accent}bb)` }}>
-              {(rx.doctorName || 'D').charAt(0).toUpperCase()}
+            <div style={{ ...M.mAvatar, background: accent }}>
+              {(rx.doctorName || 'D').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()}
             </div>
             <div>
               <p style={M.mDoc}>Dr. {rx.doctorName}</p>
@@ -104,35 +101,35 @@ function DetailModal({ rx, onClose, onDownload, downloading }: {
               {rx.doctorQualification && <p style={M.mQual}>{rx.doctorQualification}</p>}
             </div>
           </div>
-          <button style={M.closeBtn} onClick={onClose}><X size={15} /></button>
+          <button style={M.closeBtn} onClick={onClose}><X size={14} /></button>
         </div>
 
-        {/* Scrollable body */}
+        {/* Body */}
         <div style={M.body}>
 
-          {/* Diagnosis */}
-          <div style={{ ...M.diagBanner, background: `${accent}0d`, border: `1px solid ${accent}30` }}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-              <Activity size={14} style={{ color: accent, marginTop: 2, flexShrink: 0 }} />
+          {/* Diagnosis banner */}
+          <div style={{ padding: '12px 14px', borderRadius: 10, background: `${accent}08`, border: `1px solid ${accent}20` }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <Activity size={13} style={{ color: accent, marginTop: 2, flexShrink: 0 }} />
               <div>
-                <p style={M.diagLabel}>Diagnosis</p>
-                <p style={{ ...M.diagText, color: accent === '#2563eb' ? '#1e3a8a' : '#0f172a' }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px' }}>Diagnosis</p>
+                <p style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.35 }}>
                   {rx.diagnosis || 'General consultation'}
                 </p>
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, marginTop: 10 }}>
-              <span style={M.metaChip}><Calendar size={10} />{fmtDate(rx.createdAt)}</span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginTop: 10 }}>
+              <span style={M.metaChip}><Calendar size={10} />{fmtDate(rx.createdAt, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
               {rx.hospitalName && <span style={M.metaChip}><Stethoscope size={10} />{rx.hospitalName}</span>}
             </div>
           </div>
 
           {/* Medicines */}
           <div>
-            <div style={M.sectionHead}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
               <Pill size={13} style={{ color: accent }} />
-              <span style={M.sectionTitle}>Prescribed Medicines</span>
-              <span style={{ ...M.countBadge, background: `${accent}12`, color: accent, border: `1px solid ${accent}30` }}>
+              <p style={M.sectionTitle}>Prescribed Medicines</p>
+              <span style={{ fontSize: 11, fontWeight: 700, color: accent, background: `${accent}12`, border: `1px solid ${accent}30`, padding: '1px 8px', borderRadius: 6 }}>
                 {rx.medicines?.length || 0}
               </span>
             </div>
@@ -140,39 +137,52 @@ function DetailModal({ rx, onClose, onDownload, downloading }: {
             {rx.medicines && rx.medicines.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {rx.medicines.map((m, i) => (
-                  <motion.div key={i} style={M.medRow}
-                    initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}>
-                    <div style={{ ...M.medIdx, background: `${accent}12`, border: `1px solid ${accent}25`, color: accent }}>
-                      {i + 1}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' as const, marginBottom: 7 }}>
-                        <span style={M.medName}>{m.medicineName}</span>
-                        {m.dosage && (
-                          <span style={{ ...M.dosageBadge, background: `${accent}10`, border: `1px solid ${accent}25`, color: accent }}>
-                            {m.dosage}
-                          </span>
-                        )}
-                        {m.type && <span style={M.typeBadge}>{m.type}</span>}
+                  <motion.div key={i}
+                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.04 }}
+                    style={{ padding: '10px 12px', borderRadius: 10, background: '#fafafa', border: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                      <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: `${accent}12`, border: `1px solid ${accent}25`, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10.5, fontWeight: 700 }}>
+                        {i + 1}
                       </div>
-                      <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
-                        {m.frequency && (
-                          <span style={{ ...M.chip, ...CHIP.frequency }}><Clock size={9} />{m.frequency}</span>
-                        )}
-                        {m.duration && (
-                          <span style={{ ...M.chip, ...CHIP.duration }}><Calendar size={9} />{m.duration}</span>
-                        )}
-                        {m.instructions && (
-                          <span style={{ ...M.chip, ...CHIP.note }}><AlertCircle size={9} />{m.instructions}</span>
-                        )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' as const, marginBottom: 6 }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>{m.medicineName}</span>
+                          {m.dosage && (
+                            <span style={{ fontSize: 11.5, fontWeight: 700, color: accent, background: `${accent}10`, border: `1px solid ${accent}25`, borderRadius: 5, padding: '1px 6px' }}>
+                              {m.dosage}
+                            </span>
+                          )}
+                          {m.type && (
+                            <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 5, padding: '1px 7px' }}>
+                              {m.type}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
+                          {m.frequency && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, ...CHIP_FREQ }}>
+                              <Clock size={9} />{m.frequency}
+                            </span>
+                          )}
+                          {m.duration && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, ...CHIP_DUR }}>
+                              <Calendar size={9} />{m.duration}
+                            </span>
+                          )}
+                          {m.instructions && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, ...CHIP_NOTE }}>
+                              <AlertCircle size={9} />{m.instructions}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </motion.div>
                 ))}
               </div>
             ) : (
-              <p style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', padding: '8px 0' }}>No medicines listed.</p>
+              <p style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic', padding: '8px 0', margin: 0 }}>No medicines listed.</p>
             )}
           </div>
 
@@ -180,21 +190,21 @@ function DetailModal({ rx, onClose, onDownload, downloading }: {
           {(rx.additionalNotes || rx.followUpDate) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {rx.additionalNotes && (
-                <div style={M.noteBox}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: '#faf5ff', border: '1px solid #ede9fe', borderRadius: 9 }}>
                   <BookOpen size={12} style={{ color: '#7c3aed', flexShrink: 0, marginTop: 2 }} />
                   <div>
-                    <p style={M.noteLabel}>Doctor's Notes</p>
-                    <p style={M.noteText}>{rx.additionalNotes}</p>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px' }}>Doctor's Notes</p>
+                    <p style={{ fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.6 }}>{rx.additionalNotes}</p>
                   </div>
                 </div>
               )}
               {rx.followUpDate && (
-                <div style={{ ...M.noteBox, background: '#fefce8', border: '1px solid #fde68a' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 9 }}>
                   <CalendarClock size={12} style={{ color: '#d97706', flexShrink: 0, marginTop: 2 }} />
-                  <div>
-                    <p style={M.noteLabel}>Follow-up Appointment</p>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const }}>
-                      <p style={{ ...M.noteText, fontWeight: 700, color: '#92400e', margin: 0 }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 3px' }}>Follow-up Appointment</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' as const, marginBottom: 4 }}>
+                      <p style={{ fontSize: 13, fontWeight: 700, color: '#92400e', margin: 0 }}>
                         {fmtDate(rx.followUpDate, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                       </p>
                       <span style={{
@@ -208,16 +218,16 @@ function DetailModal({ rx, onClose, onDownload, downloading }: {
                       </span>
                     </div>
                     {isOverdue(rx.followUpDate) && (
-                      <p style={{ margin: '8px 0 0', fontSize: 12, color: '#b45309', fontWeight: 600, lineHeight: 1.45 }}>
-                        The follow-up date has already passed. We’ll show the earliest available slot.
+                      <p style={{ margin: '0 0 8px', fontSize: 12, color: '#b45309', fontWeight: 600, lineHeight: 1.45 }}>
+                        The follow-up date has already passed. We'll show the earliest available slot.
                       </p>
                     )}
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                       onClick={() => navigate(buildFollowUpBookingPath(rx.doctorName, rx.doctorSpecialization, rx.followUpDate))}
-                      style={{ marginTop: 10, padding: '8px 12px', borderRadius: 9, border: '1px solid #f59e0b', background: 'linear-gradient(135deg, #d97706, #f59e0b)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <Calendar size={12} /> {isOverdue(rx.followUpDate) ? 'Find earliest slot' : 'Book follow-up'}
-                    </button>
+                      style={{ padding: '7px 13px', borderRadius: 8, border: 'none', background: '#d97706', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, boxShadow: '0 3px 10px rgba(217,119,6,0.3)' }}>
+                      <Calendar size={11} /> {isOverdue(rx.followUpDate) ? 'Find earliest slot' : 'Book follow-up'}
+                    </motion.button>
                   </div>
                 </div>
               )}
@@ -228,8 +238,9 @@ function DetailModal({ rx, onClose, onDownload, downloading }: {
         {/* Footer */}
         <div style={M.footer}>
           <button style={M.cancelBtn} onClick={onClose}>Close</button>
-          <motion.button style={{ ...M.dlBtn, background: accent, boxShadow: `0 4px 14px ${accent}45` }}
-            whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+          <motion.button
+            style={{ ...M.actionBtn, flex: 1, justifyContent: 'center', background: accent, color: '#fff', border: 'none', boxShadow: `0 3px 10px ${accent}40` }}
+            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
             onClick={() => onDownload(rx.id)} disabled={downloading}>
             {downloading
               ? <><span style={M.spinner} />Downloading…</>
@@ -274,8 +285,8 @@ export default function PatientPrescriptions() {
   const toggle = (id: number) => setExpanded(e => e === id ? null : id)
 
   /* Stats */
-  const totalMeds = useMemo(() => prescriptions.reduce((s, p) => s + (p.medicines?.length || 0), 0), [prescriptions])
-  const uniqueDocs = useMemo(() => new Set(prescriptions.map(p => p.doctorName)).size, [prescriptions])
+  const totalMeds   = useMemo(() => prescriptions.reduce((s, p) => s + (p.medicines?.length || 0), 0), [prescriptions])
+  const uniqueDocs  = useMemo(() => new Set(prescriptions.map(p => p.doctorName)).size, [prescriptions])
   const withFollowUp = useMemo(() => prescriptions.filter(p => p.followUpDate).length, [prescriptions])
 
   /* Filtered list */
@@ -292,33 +303,38 @@ export default function PatientPrescriptions() {
     })
   }, [prescriptions, search, filterMode])
 
+  const activeFilters = [filterMode !== 'ALL', !!search.trim()].filter(Boolean).length
+
   return (
     <div style={S.page}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Mono:wght@400;500&display=swap');
-        @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap');
+        *, *::before, *::after { font-family: 'Geist', system-ui, sans-serif; }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
         @keyframes spin   { to{transform:rotate(360deg)} }
-        @keyframes sk     { 0%,100%{opacity:.5} 50%{opacity:1} }
-        .rx-row:hover { background:#f8faff!important; }
-        .rx-row { transition:background 0.14s ease; cursor:pointer; }
-        .rx-dl:hover { background:#2563eb!important; color:#fff!important; border-color:#2563eb!important; }
-        .rx-open:hover { background:#2563eb!important; color:#fff!important; border-color:#2563eb!important; }
-        .rx-filter:hover { border-color:#bfdbfe!important; color:#2563eb!important; }
-        .rx-search-input:focus { border-color:#bfdbfe!important; box-shadow:0 0 0 3px rgba(37,99,235,0.08)!important; background:#fff!important; }
-        .rx-card-nav:hover { background:#eff6ff!important; }
+        @keyframes sk     { 0%,100%{opacity:.45} 50%{opacity:.9} }
+        .rx-row:hover     { background:#f8faff !important; }
+        .rx-row           { transition: background 0.12s ease; cursor: pointer; }
+        .act-btn:hover    { background:#2563eb !important; color:#fff !important; border-color:#2563eb !important; }
+        .act-dl:hover     { background:#2563eb !important; color:#fff !important; border-color:#2563eb !important; }
+        .act-amber:hover  { background:#d97706 !important; color:#fff !important; border-color:#d97706 !important; }
+        .act-red:hover    { background:#dc2626 !important; color:#fff !important; border-color:#dc2626 !important; }
+        .search-in:focus  { border-color:#93c5fd !important; box-shadow:0 0 0 3px rgba(37,99,235,0.07) !important; background:#fff !important; }
+        .filter-pill      { transition: all 0.12s ease; }
+        .filter-pill:hover { border-color:#bfdbfe !important; }
       `}</style>
 
       {/* ── Header ──────────────────────────────────────────── */}
       <motion.div style={S.header}
-        initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.38, ease: [0.22,1,0.36,1] }}>
+        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}>
         <div>
           <p style={S.eyebrow}>Health Records</p>
           <h1 style={S.title}>My Prescriptions</h1>
           <p style={S.subtitle}>All your consultation prescriptions, searchable and downloadable</p>
         </div>
         <span style={S.countBadge}>
-          <FileText size={13} style={{ color: '#2563eb' }} />
+          <FileText size={12} style={{ color: '#2563eb' }} />
           {prescriptions.length} records
         </span>
       </motion.div>
@@ -326,169 +342,188 @@ export default function PatientPrescriptions() {
       {/* ── Stats strip ─────────────────────────────────────── */}
       {prescriptions.length > 0 && (
         <motion.div style={S.statsRow}
-          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}>
+          initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}>
           {[
-            { icon: FileText,      val: prescriptions.length, lbl: 'Total',        color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
-            { icon: Users,         val: uniqueDocs,            lbl: 'Doctors',      color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
-            { icon: Pill,          val: totalMeds,             lbl: 'Medicines',    color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
-            { icon: CalendarClock, val: withFollowUp,          lbl: 'Follow-ups',   color: '#d97706', bg: '#fefce8', border: '#fde68a' },
+            { icon: FileText,      val: prescriptions.length, lbl: 'Total',      color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+            { icon: Users,         val: uniqueDocs,            lbl: 'Doctors',    color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+            { icon: Pill,          val: totalMeds,             lbl: 'Medicines',  color: '#0891b2', bg: '#ecfeff', border: '#a5f3fc' },
+            { icon: CalendarClock, val: withFollowUp,          lbl: 'Follow-ups', color: '#d97706', bg: '#fefce8', border: '#fde68a' },
           ].map(({ icon: Icon, val, lbl, color, bg, border }, i) => (
             <motion.div key={lbl}
-              style={{ ...S.statPill, background: bg, borderColor: border }}
-              initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.14 + i * 0.05 }}>
-              <div style={{ ...S.statIcon, color }}>
-                <Icon size={14} />
+              style={{ ...S.statPill, background: bg, border: `1px solid ${border}` }}
+              initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.12 + i * 0.04 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 7, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color, boxShadow: '0 1px 3px rgba(0,0,0,0.06)', flexShrink: 0 }}>
+                <Icon size={13} />
               </div>
-              <span style={{ ...S.statVal, color }}>{val}</span>
-              <span style={S.statLbl}>{lbl}</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{val}</span>
+              <span style={{ fontSize: 11.5, color: '#6b7280', fontWeight: 500 }}>{lbl}</span>
             </motion.div>
           ))}
         </motion.div>
       )}
 
       {/* ── Toolbar ─────────────────────────────────────────── */}
-      {prescriptions.length > 0 && (
-        <motion.div style={S.toolbar}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.18 }}>
-          {/* Search */}
-          <div style={S.searchWrap}>
-            <Search size={13} style={{ color: '#94a3b8', position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            <input
-              className="rx-search-input"
-              style={S.searchInput}
-              placeholder="Search doctor, diagnosis, medicine…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-            {search && (
-              <button style={S.clearBtn} onClick={() => setSearch('')}><X size={11} /></button>
-            )}
-          </div>
+      <motion.div style={S.toolbar}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
 
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: 5 }}>
-            {([
-              { key: 'ALL' as const,       label: 'All' },
-              { key: 'FOLLOW_UP' as const, label: 'Follow-up Due' },
-              { key: 'RECENT' as const,    label: 'Last 30 Days' },
-            ]).map(t => (
-              <button key={t.key} className="rx-filter"
-                onClick={() => setFilterMode(t.key)}
-                style={{
-                  ...S.filterBtn,
-                  background: filterMode === t.key ? '#2563eb' : '#fff',
-                  color: filterMode === t.key ? '#fff' : '#64748b',
-                  borderColor: filterMode === t.key ? '#2563eb' : '#e5e7eb',
-                  boxShadow: filterMode === t.key ? '0 2px 8px rgba(37,99,235,0.22)' : 'none',
-                }}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+        {/* Search */}
+        <div style={{ position: 'relative', flex: 1, minWidth: 180, maxWidth: 300 }}>
+          <Search size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} />
+          <input className="search-in" style={S.searchInput}
+            placeholder="Search doctor, diagnosis, medicine…"
+            value={search} onChange={e => setSearch(e.target.value)} />
+          {search && (
+            <button style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 2, display: 'flex', alignItems: 'center' }}
+              onClick={() => setSearch('')}><X size={11} /></button>
+          )}
+        </div>
 
-          <span style={S.resultHint}>
-            {(search || filterMode !== 'ALL') ? `${filtered.length} of ${prescriptions.length}` : `${prescriptions.length} total`}
-          </span>
-        </motion.div>
-      )}
+        {/* Divider */}
+        <div style={{ width: 1, height: 22, background: '#e5e7eb', flexShrink: 0 }} />
+
+        {/* Filter pills */}
+        {([
+          { key: 'ALL' as const,       label: 'All Prescriptions' },
+          { key: 'FOLLOW_UP' as const, label: 'Follow-up Due' },
+          { key: 'RECENT' as const,    label: 'Last 30 Days' },
+        ]).map(t => (
+          <button key={t.key} className="filter-pill"
+            onClick={() => setFilterMode(t.key)}
+            style={{
+              padding: '6px 12px', borderRadius: 7,
+              border: '1.5px solid',
+              fontSize: 12.5, fontWeight: filterMode === t.key ? 600 : 500,
+              cursor: 'pointer',
+              background: filterMode === t.key ? '#2563eb' : '#fff',
+              color: filterMode === t.key ? '#fff' : '#475569',
+              borderColor: filterMode === t.key ? '#2563eb' : '#e5e7eb',
+              boxShadow: filterMode === t.key ? '0 2px 8px rgba(37,99,235,0.22)' : 'none',
+              transition: 'all 0.12s ease',
+              whiteSpace: 'nowrap' as const,
+            }}>
+            {t.label}
+          </button>
+        ))}
+
+        {/* Clear */}
+        {activeFilters > 0 && (
+          <button className="act-red" style={{ ...S.actBtn, color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2', whiteSpace: 'nowrap', flexShrink: 0 }}
+            onClick={() => { setFilterMode('ALL'); setSearch('') }}>
+            <X size={11} /> Clear {activeFilters > 1 ? `${activeFilters} filters` : 'filter'}
+          </button>
+        )}
+
+        {/* Count */}
+        <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 500, whiteSpace: 'nowrap', marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', flexShrink: 0 }}>
+          {activeFilters > 0 ? `${filtered.length} of ${prescriptions.length}` : `${prescriptions.length} total`}
+        </span>
+      </motion.div>
 
       {/* ── Loading ─────────────────────────────────────────── */}
       {loading && <Skeleton />}
 
-      {/* ── Empty ───────────────────────────────────────────── */}
+      {/* ── Empty state ─────────────────────────────────────── */}
       {!loading && prescriptions.length === 0 && (
-        <motion.div style={S.empty}
-          initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <div style={S.emptyIcon}><FileText size={26} style={{ color: '#bfdbfe' }} /></div>
-          <p style={S.emptyTitle}>No prescriptions yet</p>
-          <p style={S.emptySub}>Prescriptions from your consultations will appear here.</p>
+        <motion.div style={S.empty} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: '#eff6ff', border: '1px solid #bfdbfe', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+            <FileText size={22} style={{ color: '#93c5fd' }} />
+          </div>
+          <p style={{ fontWeight: 600, fontSize: 14, color: '#475569', margin: 0 }}>No prescriptions yet</p>
+          <p style={{ fontSize: 13, color: '#94a3b8', margin: '5px 0 0', maxWidth: 280, lineHeight: 1.6, textAlign: 'center' }}>
+            Prescriptions from your consultations will appear here.
+          </p>
         </motion.div>
       )}
 
       {/* ── No results ──────────────────────────────────────── */}
       {!loading && prescriptions.length > 0 && filtered.length === 0 && (
         <motion.div style={S.empty} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div style={S.emptyIcon}><Search size={22} style={{ color: '#bfdbfe' }} /></div>
-          <p style={S.emptyTitle}>No matches</p>
-          <p style={S.emptySub}>Try a different search term or filter.</p>
+          <div style={{ width: 52, height: 52, borderRadius: 14, background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+            <Search size={20} style={{ color: '#94a3b8' }} />
+          </div>
+          <p style={{ fontWeight: 600, fontSize: 14, color: '#475569', margin: 0 }}>No matches found</p>
+          <p style={{ fontSize: 13, color: '#94a3b8', margin: '5px 0 0' }}>Try a different search term or filter.</p>
         </motion.div>
       )}
 
-      {/* ── Prescription list ────────────────────────────────── */}
+      {/* ── List ────────────────────────────────────────────── */}
       {!loading && filtered.length > 0 && (
         <motion.div style={S.listWrap}
-          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.22 }}>
+          initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}>
 
-          {/* Table column headers */}
+          {/* Table header */}
           <div style={S.listHead}>
             <span style={{ flex: 2.2 }}>Doctor</span>
             <span style={{ flex: 2 }}>Diagnosis</span>
             <span style={{ flex: 1 }}>Date</span>
             <span style={{ flex: 0.7 }}>Meds</span>
-            <span style={{ flex: 1.5 }}>Follow-up</span>
-            <span style={{ flex: 1.2, textAlign: 'right' as const }}>Actions</span>
+            <span style={{ flex: 1.4 }}>Follow-up</span>
+            <span style={{ flex: 1.5, textAlign: 'right' as const }}>Actions</span>
           </div>
 
-          {/* Rows */}
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {filtered.map((rx, idx) => {
               const accent = ACCENTS[idx % ACCENTS.length]
               const isOpen = expanded === rx.id
               const medCount = rx.medicines?.length || 0
-              const initials = (rx.doctorName || 'D').split(' ').map((w: string) => w[0]).join('').slice(0,2).toUpperCase()
+              const initials = (rx.doctorName || 'D').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
               const isDl = downloading === rx.id
               const overdue = rx.followUpDate && isOverdue(rx.followUpDate)
 
               return (
                 <div key={rx.id} style={{
-                  ...S.rowWrap,
+                  borderBottom: '1px solid #f1f5f9',
                   borderLeft: `3px solid ${isOpen ? accent : 'transparent'}`,
-                  background: isOpen ? `${accent}06` : '#fff',
-                  animation: `fadeUp 0.38s ease both`,
-                  animationDelay: `${idx * 0.05}s`,
+                  background: isOpen ? `${accent}05` : '#fff',
+                  animation: `fadeUp 0.3s ease both`,
+                  animationDelay: `${idx * 0.04}s`,
+                  transition: 'background 0.15s ease, border-color 0.15s ease',
                 }}>
+
                   {/* ── Main row ── */}
                   <div className="rx-row" style={S.row} onClick={() => toggle(rx.id)}>
 
                     {/* Doctor */}
                     <div style={{ flex: 2.2, display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{ ...S.avatar, background: `linear-gradient(135deg,${accent},${accent}bb)` }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, background: accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>
                         {initials}
                       </div>
                       <div style={{ minWidth: 0 }}>
-                        <p style={S.docName}>Dr. {rx.doctorName}</p>
+                        <p style={{ margin: 0, fontWeight: 600, fontSize: 13.5, color: '#0f172a', lineHeight: 1.2 }}>Dr. {rx.doctorName}</p>
                         {rx.doctorSpecialization && (
-                          <p style={{ ...S.docSpec, color: accent }}>{rx.doctorSpecialization}</p>
+                          <p style={{ margin: '2px 0 0', fontSize: 11.5, color: accent, fontWeight: 500 }}>{rx.doctorSpecialization}</p>
                         )}
                       </div>
                     </div>
 
                     {/* Diagnosis */}
                     <div style={{ flex: 2, minWidth: 0, paddingRight: 12 }}>
-                      <p style={S.diagText}>{rx.diagnosis || 'General consultation'}</p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#374151', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {rx.diagnosis || 'General consultation'}
+                      </p>
                     </div>
 
                     {/* Date */}
                     <div style={{ flex: 1 }}>
-                      <p style={S.dateText}>{fmtDate(rx.createdAt, { day: 'numeric', month: 'short' })}</p>
-                      <p style={S.yearText}>{fmtDate(rx.createdAt, { year: 'numeric' })}</p>
+                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{fmtDate(rx.createdAt, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     </div>
 
-                    {/* Med count */}
+                    {/* Med count badge */}
                     <div style={{ flex: 0.7 }}>
-                      <span style={{ ...S.medBadge, background: `${accent}10`, color: accent, border: `1px solid ${accent}25` }}>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 700, background: `${accent}10`, color: accent, border: `1px solid ${accent}25` }}>
                         <Pill size={9} /> {medCount}
                       </span>
                     </div>
 
                     {/* Follow-up */}
-                    <div style={{ flex: 1.5 }}>
+                    <div style={{ flex: 1.4 }}>
                       {rx.followUpDate ? (
                         <span style={{
-                          ...S.followChip,
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 700,
                           background: overdue ? '#fff1f2' : '#fefce8',
                           border: `1px solid ${overdue ? '#fecdd3' : '#fde68a'}`,
                           color: overdue ? '#e11d48' : '#92400e',
@@ -497,111 +532,133 @@ export default function PatientPrescriptions() {
                           {fmtRelative(rx.followUpDate)}
                         </span>
                       ) : (
-                        <span style={S.noFollow}>—</span>
+                        <span style={{ fontSize: 13, color: '#cbd5e1' }}>—</span>
                       )}
                     </div>
 
                     {/* Actions */}
-                    <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}
+                    <div style={{ flex: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 5 }}
                       onClick={e => e.stopPropagation()}>
-                      <button className="rx-open" style={S.actionBtn}
+                      <button className="act-btn" style={S.actBtn}
                         onClick={() => setOpenRx(rx)}>
-                        <ArrowUpRight size={12} /> Details
+                        <ArrowUpRight size={11} /> Details
                       </button>
-                      <button className="rx-dl" style={S.dlBtn}
+                      <button className="act-dl" style={{ ...S.actBtn, width: 30, height: 30, padding: 0, justifyContent: 'center', flexShrink: 0 }}
                         onClick={() => handleDownload(rx.id)} disabled={isDl}
                         title="Download PDF">
-                        {isDl
-                          ? <span style={S.spinner} />
-                          : <Download size={13} />}
+                        {isDl ? <span style={S.spinner} /> : <Download size={13} />}
                       </button>
                       <motion.div
                         animate={{ rotate: isOpen ? 180 : 0 }}
-                        transition={{ duration: 0.22, ease: [0.22,1,0.36,1] }}
-                        style={{ display: 'flex', alignItems: 'center' }}>
-                        <ChevronDown size={15} style={{ color: '#94a3b8' }} />
+                        transition={{ duration: 0.2 }}
+                        style={{ display: 'flex', alignItems: 'center', marginLeft: 1, flexShrink: 0 }}>
+                        <ChevronDown size={14} style={{ color: '#94a3b8' }} />
                       </motion.div>
                     </div>
                   </div>
 
-                  {/* ── Dropdown expand ── */}
+                  {/* ── Expand drawer ── */}
                   <AnimatePresence initial={false}>
                     {isOpen && (
-                      <motion.div
-                        key="drawer"
+                      <motion.div key="drawer"
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.28, ease: [0.22,1,0.36,1] }}
+                        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
                         style={{ overflow: 'hidden' }}>
-                        <div style={{ ...S.drawer, borderTop: `1px dashed ${accent}35` }}>
+                        <div style={{ padding: '16px 20px 18px', background: '#fafbfe', borderTop: `1px dashed ${accent}25` }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 16 }}>
 
-                          {/* Medicine pills */}
-                          {medCount > 0 ? (
+                            {/* Prescription details */}
                             <div>
-                              <p style={S.drawerLabel}>
-                                <Pill size={12} style={{ color: accent }} /> Prescribed Medicines
-                              </p>
-                              <div style={S.medGrid}>
-                                {rx.medicines!.map((m, i) => (
-                                  <motion.div key={i} style={S.medCard}
-                                    initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.04 }}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                                      <div style={{ ...S.medNum, background: `${accent}10`, border: `1px solid ${accent}20`, color: accent }}>
-                                        {i + 1}
-                                      </div>
-                                      <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' as const, marginBottom: 5 }}>
-                                          <span style={S.medName}>{m.medicineName}</span>
-                                          {m.dosage && (
-                                            <span style={{ ...S.doseBadge, background: `${accent}10`, border: `1px solid ${accent}20`, color: accent }}>
-                                              {m.dosage}
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 4 }}>
-                                          {m.frequency && <span style={{ ...S.chip, ...CHIP.frequency }}><Clock size={8} />{m.frequency}</span>}
-                                          {m.duration && <span style={{ ...S.chip, ...CHIP.duration }}><Calendar size={8} />{m.duration}</span>}
-                                          {m.instructions && <span style={{ ...S.chip, ...CHIP.note }}><AlertCircle size={8} />{m.instructions}</span>}
-                                        </div>
-                                      </div>
+                              <p style={S.drawerLabel}>Prescription Details</p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                                {[
+                                  { icon: Calendar,    label: 'Date',          val: fmtDate(rx.createdAt, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) },
+                                  { icon: Stethoscope, label: 'Specialization', val: rx.doctorSpecialization || '—' },
+                                  ...(rx.hospitalName ? [{ icon: Activity, label: 'Hospital', val: rx.hospitalName }] : []),
+                                  ...(rx.doctorQualification ? [{ icon: CheckCircle2, label: 'Qualification', val: rx.doctorQualification }] : []),
+                                ].map(({ icon: Icon, label, val }) => (
+                                  <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                                    <div style={{ width: 26, height: 26, borderRadius: 7, background: `${accent}0f`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                      <Icon size={12} style={{ color: accent }} />
                                     </div>
-                                  </motion.div>
+                                    <div>
+                                      <p style={{ fontSize: 10, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: '0.06em', margin: '0 0 1px' }}>{label}</p>
+                                      <p style={{ fontSize: 12.5, fontWeight: 500, color: '#0f172a', margin: 0, lineHeight: 1.3 }}>{val}</p>
+                                    </div>
+                                  </div>
                                 ))}
                               </div>
                             </div>
-                          ) : (
-                            <p style={{ fontSize: 12.5, color: '#94a3b8', fontStyle: 'italic' }}>No medicines listed.</p>
-                          )}
 
-                          {/* Notes */}
-                          {rx.additionalNotes && (
-                            <div style={S.noteStrip}>
-                              <BookOpen size={12} style={{ color: '#7c3aed', flexShrink: 0 }} />
-                              <span style={S.noteText}>{rx.additionalNotes}</span>
-                            </div>
-                          )}
-
-                          {/* Footer CTA */}
-                          <div style={S.drawerFooter}>
-                            <span style={S.drawerHint}>Click "Details" for the full prescription view</span>
-                            <div style={{ display: 'flex', gap: 7 }}>
-                              {rx.followUpDate && (
-                                <button className="rx-open" style={{ ...S.actionBtn, padding: '7px 14px', background: '#fff7ed', borderColor: '#fdba74', color: '#c2410c' }}
-                                  onClick={() => navigate(buildFollowUpBookingPath(rx.doctorName, rx.doctorSpecialization, rx.followUpDate))}>
-                                  <CalendarClock size={12} /> {overdue ? 'Find earliest slot' : 'Book follow-up'}
-                                </button>
+                            {/* Medicines preview */}
+                            <div>
+                              <p style={S.drawerLabel}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                                  <Pill size={12} style={{ color: accent }} /> Medicines ({medCount})
+                                </span>
+                              </p>
+                              {medCount > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                  {rx.medicines!.slice(0, 4).map((m, i) => (
+                                    <motion.div key={i}
+                                      initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: i * 0.04 }}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 8, background: '#fff', border: '1px solid #f1f5f9' }}>
+                                      <div style={{ width: 18, height: 18, borderRadius: 5, background: `${accent}10`, border: `1px solid ${accent}20`, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, flexShrink: 0 }}>
+                                        {i + 1}
+                                      </div>
+                                      <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ margin: 0, fontSize: 12.5, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.medicineName}</p>
+                                        {m.dosage && <p style={{ margin: '1px 0 0', fontSize: 10.5, color: accent, fontWeight: 600 }}>{m.dosage}</p>}
+                                      </div>
+                                      {m.frequency && (
+                                        <span style={{ fontSize: 10, color: '#64748b', fontWeight: 500, background: '#f8fafc', borderRadius: 4, padding: '1px 5px', whiteSpace: 'nowrap' as const }}>
+                                          {m.frequency}
+                                        </span>
+                                      )}
+                                    </motion.div>
+                                  ))}
+                                  {medCount > 4 && (
+                                    <p style={{ fontSize: 11.5, color: '#94a3b8', margin: 0, fontStyle: 'italic' }}>+{medCount - 4} more in full details</p>
+                                  )}
+                                </div>
+                              ) : (
+                                <p style={{ fontSize: 12.5, color: '#94a3b8', fontStyle: 'italic', margin: 0 }}>No medicines listed</p>
                               )}
-                              <button className="rx-open" style={{ ...S.actionBtn, padding: '7px 14px' }}
-                                onClick={() => setOpenRx(rx)}>
-                                <ArrowUpRight size={12} /> Full Details
-                              </button>
-                              <button className="rx-dl" style={{ ...S.dlBtn, padding: '0 14px', width: 'auto', gap: 5 }}
-                                onClick={() => handleDownload(rx.id)} disabled={isDl}>
-                                {isDl ? <span style={S.spinner} /> : <><Download size={12} />PDF</>}
-                              </button>
                             </div>
+
+                            {/* Quick actions */}
+                            <div>
+                              <p style={S.drawerLabel}>Quick Actions</p>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {[
+                                  { cls: 'act-btn', label: 'Full Details', icon: ArrowUpRight, fn: () => setOpenRx(rx) },
+                                  { cls: 'act-dl', label: 'Download PDF', icon: Download, fn: () => handleDownload(rx.id) },
+                                  ...(rx.followUpDate ? [{ cls: 'act-amber', label: overdue ? 'Find earliest slot' : 'Book Follow-up', icon: CalendarClock, fn: () => navigate(buildFollowUpBookingPath(rx.doctorName, rx.doctorSpecialization, rx.followUpDate)), style: { color: '#d97706', borderColor: '#fde68a', background: '#fffbeb' } }] : []),
+                                ].map(({ cls, label, icon: Icon, fn, style: btnStyle }: any) => (
+                                  <motion.button key={label} className={cls}
+                                    style={{ ...S.drawerActBtn, ...(btnStyle || {}) }}
+                                    whileHover={{ x: 2 }} onClick={fn}>
+                                    <Icon size={12} /> {label} <ArrowUpRight size={10} style={{ marginLeft: 'auto', opacity: 0.5 }} />
+                                  </motion.button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Drawer footer */}
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 12, marginTop: 4, borderTop: '1px solid #f1f5f9', flexWrap: 'wrap', gap: 6 }}>
+                            <span style={{ fontSize: 11.5, color: '#94a3b8', fontStyle: 'italic' }}>Click "Full Details" for the complete prescription view</span>
+                            {rx.followUpDate && (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <CalendarClock size={11} style={{ color: overdue ? '#e11d48' : accent }} />
+                                <span style={{ fontSize: 11.5, color: '#64748b' }}>
+                                  Follow-up <strong style={{ color: overdue ? '#e11d48' : accent }}>{fmtRelative(rx.followUpDate)}</strong>
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </motion.div>
@@ -632,289 +689,145 @@ export default function PatientPrescriptions() {
 /* ─── Page styles ────────────────────────────────────────── */
 const S: Record<string, React.CSSProperties> = {
   page: {
-    padding: '1.75rem', fontFamily: "'DM Sans',system-ui,sans-serif",
+    padding: '1.75rem',
     maxWidth: 1200, margin: '0 auto',
-    display: 'flex', flexDirection: 'column', gap: 16, minHeight: '100%',
+    display: 'flex', flexDirection: 'column', gap: 14, minHeight: '100%',
   },
   header: {
     display: 'flex', justifyContent: 'space-between',
     alignItems: 'flex-start', flexWrap: 'wrap', gap: 12,
   },
-  eyebrow: { fontSize: 10.5, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 4px' },
-  title:   { fontSize: 'clamp(1.25rem,2.5vw,1.75rem)', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.03em', margin: 0 },
-  subtitle:{ fontSize: 13, color: '#94a3b8', margin: '4px 0 0' },
+  eyebrow: { fontSize: 10.5, fontWeight: 600, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 3px' },
+  title:   { fontSize: 'clamp(1.25rem,2.5vw,1.65rem)', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.025em', margin: 0, lineHeight: 1.1 },
+  subtitle:{ fontSize: 13, color: '#94a3b8', margin: '4px 0 0', fontWeight: 400 },
   countBadge: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '5px 14px', borderRadius: 999,
-    background: '#fff', border: '1.5px solid #bfdbfe',
-    fontSize: 12.5, fontWeight: 700, color: '#1e40af',
-    boxShadow: '0 1px 4px rgba(37,99,235,0.08)',
+    padding: '5px 12px', borderRadius: 7,
+    background: '#fff', border: '1px solid #bfdbfe',
+    fontSize: 12.5, fontWeight: 600, color: '#1e40af',
   },
-
-  /* Stats */
-  statsRow: { display: 'flex', gap: 10, flexWrap: 'wrap' },
+  statsRow: { display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' },
   statPill: {
     display: 'flex', alignItems: 'center', gap: 8,
-    padding: '8px 16px', borderRadius: 999,
-    border: '1px solid', flex: 1, minWidth: 120,
+    padding: '8px 14px', borderRadius: 8,
+    flex: 1, minWidth: 110,
   },
-  statIcon: {
-    width: 28, height: 28, borderRadius: 8, background: 'white',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.06)', flexShrink: 0,
-  },
-  statVal: { fontSize: 17, fontWeight: 800, fontFamily: 'DM Mono,monospace', lineHeight: 1 },
-  statLbl: { fontSize: 11.5, color: '#6b7280', fontWeight: 500 },
-
-  /* Toolbar */
   toolbar: {
-    display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+    display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
     background: '#fff', border: '1px solid #f1f5f9',
-    borderRadius: 12, padding: '10px 14px',
-    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+    borderRadius: 10, padding: '10px 12px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
   },
-  searchWrap: { position: 'relative', flex: 1, minWidth: 200, maxWidth: 360 },
   searchInput: {
-    width: '100%', padding: '8px 30px 8px 34px',
-    borderRadius: 9, border: '1.5px solid #e5e7eb',
+    width: '100%', padding: '7px 28px 7px 32px',
+    borderRadius: 7, border: '1.5px solid #e5e7eb',
     background: '#f8fafc', color: '#0f172a',
-    fontSize: 13, fontFamily: 'DM Sans,sans-serif', outline: 'none',
-    transition: 'all 0.15s ease',
+    fontSize: 13, outline: 'none',
+    transition: 'all 0.14s ease',
   },
-  clearBtn: {
-    position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-    background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 2,
-    display: 'flex', alignItems: 'center',
-  },
-  filterBtn: {
-    padding: '6px 13px', borderRadius: 999,
-    fontSize: 12, fontWeight: 700, border: '1.5px solid',
-    cursor: 'pointer', fontFamily: 'DM Sans,sans-serif', transition: 'all 0.14s ease',
-  },
-  resultHint: { fontSize: 12, color: '#94a3b8', fontWeight: 500, marginLeft: 'auto', whiteSpace: 'nowrap' },
-
-  /* List */
   listWrap: {
-    background: '#fff', borderRadius: 16,
+    background: '#fff', borderRadius: 12,
     border: '1px solid #f1f5f9',
-    boxShadow: '0 1px 5px rgba(0,0,0,0.05)',
+    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
     overflow: 'hidden',
   },
   listHead: {
     display: 'flex', alignItems: 'center',
-    padding: '10px 20px',
+    padding: '9px 20px',
     background: '#f8fafc', borderBottom: '1px solid #f1f5f9',
-    fontSize: 10.5, fontWeight: 700, color: '#94a3b8',
+    fontSize: 10.5, fontWeight: 600, color: '#94a3b8',
     textTransform: 'uppercase', letterSpacing: '0.07em',
   },
-  rowWrap: {
-    borderBottom: '1px solid #f8fafc',
-    borderLeft: '3px solid transparent',
-    transition: 'all 0.18s ease',
-  },
   row: {
-    display: 'flex', alignItems: 'center', gap: 0,
-    padding: '14px 20px',
-    userSelect: 'none' as const,
+    display: 'flex', alignItems: 'center',
+    padding: '13px 20px', userSelect: 'none',
   },
-
-  /* Row content */
-  avatar: {
-    width: 36, height: 36, borderRadius: 10, flexShrink: 0,
-    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 12, fontWeight: 800, boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-  },
-  docName: { margin: 0, fontWeight: 700, fontSize: 13.5, color: '#0f172a', lineHeight: 1.2 },
-  docSpec: { margin: '2px 0 0', fontSize: 11.5, fontWeight: 600, lineHeight: 1 },
-  diagText: { margin: 0, fontSize: 13, color: '#374151', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  dateText: { margin: 0, fontSize: 12.5, fontWeight: 700, color: '#334155', fontFamily: 'DM Mono,monospace' },
-  yearText: { margin: '1px 0 0', fontSize: 11, color: '#94a3b8', fontFamily: 'DM Mono,monospace' },
-  medBadge: {
+  actBtn: {
     display: 'inline-flex', alignItems: 'center', gap: 4,
-    padding: '3px 9px', borderRadius: 999,
-    fontSize: 11.5, fontWeight: 700, fontFamily: 'DM Mono,monospace',
-  },
-  followChip: {
-    display: 'inline-flex', alignItems: 'center', gap: 5,
-    padding: '3px 9px', borderRadius: 999,
-    fontSize: 11.5, fontWeight: 700,
-  },
-  noFollow: { fontSize: 13, color: '#cbd5e1', fontWeight: 500 },
-  actionBtn: {
-    display: 'inline-flex', alignItems: 'center', gap: 5,
-    padding: '6px 12px', borderRadius: 8,
+    padding: '4px 9px', borderRadius: 6,
     background: '#f8fafc', border: '1.5px solid #e5e7eb',
-    fontSize: 12, fontWeight: 700, color: '#475569',
-    cursor: 'pointer', fontFamily: 'DM Sans,sans-serif',
-    transition: 'all 0.14s ease', whiteSpace: 'nowrap',
-  },
-  dlBtn: {
-    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-    background: '#f8fafc', border: '1.5px solid #e5e7eb',
-    color: '#64748b', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', transition: 'all 0.14s ease', fontFamily: 'DM Sans,sans-serif',
+    fontSize: 11.5, fontWeight: 600, color: '#475569',
+    cursor: 'pointer', transition: 'all 0.12s ease', whiteSpace: 'nowrap',
   },
   spinner: {
-    display: 'block', width: 12, height: 12, borderRadius: '50%',
+    display: 'block', width: 11, height: 11, borderRadius: '50%',
     border: '2px solid #e2e8f0', borderTopColor: '#2563eb',
     animation: 'spin 0.7s linear infinite',
   },
-
-  /* Drawer */
-  drawer: {
-    padding: '16px 20px 18px',
-    background: '#fafbff',
-    display: 'flex', flexDirection: 'column', gap: 14,
-  },
   drawerLabel: {
-    display: 'flex', alignItems: 'center', gap: 6,
-    fontSize: 10.5, fontWeight: 700, color: '#64748b',
-    textTransform: 'uppercase', letterSpacing: '0.08em',
-    margin: '0 0 10px',
+    fontSize: 10, fontWeight: 700, color: '#94a3b8',
+    textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 10px',
   },
-  medGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))',
-    gap: 8,
+  drawerActBtn: {
+    display: 'flex', alignItems: 'center', gap: 8,
+    padding: '8px 11px', borderRadius: 8,
+    background: '#f8fafc', border: '1.5px solid #e5e7eb',
+    fontSize: 12.5, fontWeight: 500, color: '#475569',
+    cursor: 'pointer', transition: 'all 0.12s ease', width: '100%',
   },
-  medCard: {
-    background: '#fff', borderRadius: 10,
-    border: '1px solid #f1f5f9',
-    padding: '10px 12px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-  },
-  medNum: {
-    width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-    fontSize: 10.5, fontWeight: 800, fontFamily: 'DM Mono,monospace',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  medName: { fontSize: 13, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.01em' },
-  doseBadge: {
-    fontSize: 11, fontWeight: 700,
-    fontFamily: 'DM Mono,monospace',
-    borderRadius: 5, padding: '1px 6px',
-  },
-  chip: {
-    display: 'inline-flex', alignItems: 'center', gap: 3,
-    padding: '2px 8px', borderRadius: 999,
-    fontSize: 10.5, fontWeight: 600, border: '1px solid',
-  },
-  noteStrip: {
-    display: 'flex', alignItems: 'flex-start', gap: 8,
-    padding: '9px 12px', borderRadius: 9,
-    background: '#faf5ff', border: '1px solid #ede9fe',
-  },
-  noteText: { fontSize: 12.5, color: '#4c1d95', lineHeight: 1.5 },
-  drawerFooter: {
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    flexWrap: 'wrap', gap: 8,
-    paddingTop: 10, borderTop: '1px solid #f1f5f9',
-  },
-  drawerHint: { fontSize: 11.5, color: '#94a3b8', fontStyle: 'italic' },
-
-  /* Empty */
   empty: {
     display: 'flex', flexDirection: 'column', alignItems: 'center',
-    padding: '4rem 1rem', textAlign: 'center',
-    background: '#fff', borderRadius: 16, border: '1.5px dashed #e0e7ff',
+    padding: '3.5rem 1rem', textAlign: 'center',
+    background: '#fff', borderRadius: 12, border: '1.5px dashed #e0e7ff',
   },
-  emptyIcon: {
-    width: 58, height: 58, borderRadius: 16,
-    background: '#eff6ff', border: '1px solid #bfdbfe',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12,
-  },
-  emptyTitle: { fontWeight: 700, fontSize: 14.5, color: '#475569', margin: 0 },
-  emptySub: { fontSize: 13, color: '#94a3b8', margin: '5px 0 0', maxWidth: 300, lineHeight: 1.6 },
 }
 
 /* ─── Modal styles ─────────────────────────────────────────── */
 const M: Record<string, React.CSSProperties> = {
   overlay: {
     position: 'fixed', inset: 0, zIndex: 100,
-    background: 'rgba(15,23,42,0.5)', backdropFilter: 'blur(6px)',
+    background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(5px)',
     display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem',
   },
   modal: {
-    background: '#fff', borderRadius: 20, padding: 0,
-    width: '100%', maxWidth: 540, maxHeight: '90vh',
+    background: '#fff', borderRadius: 16, padding: 0,
+    width: '100%', maxWidth: 500, maxHeight: '90vh',
     display: 'flex', flexDirection: 'column', overflow: 'hidden',
-    boxShadow: '0 24px 80px rgba(15,23,42,0.2)',
-    fontFamily: 'DM Sans,sans-serif',
+    boxShadow: '0 20px 60px rgba(15,23,42,0.18)',
   },
   mHead: {
     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-    padding: '18px 20px', borderBottom: '1px solid #f1f5f9', flexShrink: 0,
+    padding: '16px 18px', borderBottom: '1px solid #f1f5f9', flexShrink: 0,
   },
   mAvatar: {
-    width: 40, height: 40, borderRadius: 11, flexShrink: 0,
+    width: 40, height: 40, borderRadius: 10, flexShrink: 0,
     color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 14, fontWeight: 800,
+    fontSize: 13, fontWeight: 700,
   },
   mDoc:  { margin: 0, fontWeight: 700, fontSize: 14, color: '#0f172a' },
-  mSpec: { margin: '2px 0 0', fontSize: 12, fontWeight: 600 },
+  mSpec: { margin: '2px 0 0', fontSize: 12, fontWeight: 500, color: '#64748b' },
   mQual: { margin: '1px 0 0', fontSize: 11, color: '#94a3b8' },
   closeBtn: {
-    width: 30, height: 30, borderRadius: 8, flexShrink: 0,
+    width: 28, height: 28, borderRadius: 7, flexShrink: 0,
     background: '#f8fafc', border: '1px solid #e5e7eb',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     cursor: 'pointer', color: '#64748b',
   },
-  body: { flex: 1, overflowY: 'auto', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 16 },
-  diagBanner: { padding: '12px 14px', borderRadius: 12, flexShrink: 0 },
-  diagLabel: { fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 3px' },
-  diagText:  { fontSize: 14, fontWeight: 700, margin: 0 },
+  body: { flex: 1, overflowY: 'auto', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 14 },
+  sectionTitle: { fontSize: 10.5, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0, flex: 1 },
   metaChip: {
     display: 'inline-flex', alignItems: 'center', gap: 5,
-    fontSize: 11.5, color: '#64748b', fontWeight: 500,
-    background: '#fff', border: '1px solid #e5e7eb', borderRadius: 7, padding: '3px 9px',
+    fontSize: 11.5, color: '#64748b', fontWeight: 400,
+    background: '#fff', border: '1px solid #e5e7eb', borderRadius: 6, padding: '3px 8px',
   },
-  sectionHead: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 },
-  sectionTitle: { fontSize: 10.5, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.09em', flex: 1 },
-  countBadge: {
-    width: 20, height: 20, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center',
-    fontSize: 10.5, fontWeight: 800, fontFamily: 'DM Mono,monospace',
-  },
-  medRow: {
-    padding: '11px 13px', borderRadius: 11,
-    background: '#fafafa', border: '1px solid #f1f5f9',
-  },
-  medIdx: {
-    width: 24, height: 24, borderRadius: 7, flexShrink: 0,
-    fontSize: 10.5, fontWeight: 800, fontFamily: 'DM Mono,monospace',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-  medName: { fontSize: 13.5, fontWeight: 700, color: '#0f172a', letterSpacing: '-0.01em' },
-  dosageBadge: { fontSize: 11.5, fontWeight: 700, fontFamily: 'DM Mono,monospace', borderRadius: 5, padding: '1px 7px' },
-  typeBadge: { fontSize: 11, fontWeight: 600, color: '#64748b', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 5, padding: '1px 7px' },
-  chip: {
-    display: 'inline-flex', alignItems: 'center', gap: 4,
-    padding: '3px 9px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, border: '1px solid',
-  },
-  noteBox: {
-    display: 'flex', alignItems: 'flex-start', gap: 9,
-    padding: '10px 13px', borderRadius: 10,
-    background: '#faf5ff', border: '1px solid #ede9fe',
-  },
-  noteLabel: { fontSize: 9.5, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 3px' },
-  noteText:  { fontSize: 13, color: '#374151', margin: 0, lineHeight: 1.5 },
   footer: {
-    display: 'flex', gap: 10, padding: '14px 20px',
+    display: 'flex', gap: 8, padding: '12px 18px',
     borderTop: '1px solid #f1f5f9', flexShrink: 0,
   },
   cancelBtn: {
-    flex: 1, padding: '10px', borderRadius: 10,
+    padding: '9px 16px', borderRadius: 8,
     background: '#f8fafc', border: '1.5px solid #e5e7eb',
-    fontSize: 13, fontWeight: 700, color: '#64748b',
-    cursor: 'pointer', fontFamily: 'DM Sans,sans-serif',
+    fontSize: 13, fontWeight: 500, color: '#64748b',
+    cursor: 'pointer',
   },
-  dlBtn: {
-    flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-    padding: '10px', borderRadius: 10,
-    color: '#fff', border: 'none',
-    fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'DM Sans,sans-serif',
+  actionBtn: {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    padding: '9px 13px', borderRadius: 8, border: 'none',
+    fontSize: 13, fontWeight: 600, cursor: 'pointer',
+    transition: 'all 0.12s ease',
   },
   spinner: {
-    display: 'block', width: 13, height: 13, borderRadius: '50%',
+    display: 'block', width: 12, height: 12, borderRadius: '50%',
     border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff',
     animation: 'spin 0.7s linear infinite',
   },
