@@ -37,6 +37,10 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', phone: '', role: 'PATIENT' })
   const [showPwd, setShowPwd] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [verificationEmail, setVerificationEmail] = useState('')
+  const [otp, setOtp] = useState('')
+  const [verifying, setVerifying] = useState(false)
+  const [resending, setResending] = useState(false)
 
   const up = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
@@ -49,11 +53,46 @@ export default function RegisterPage() {
     try {
       const { data } = await authApi.register(form)
       const d = data.data
+      if (d.verificationRequired) {
+        setVerificationEmail(form.email)
+        setOtp('')
+        toast.success('Verification code sent to your email')
+        return
+      }
+
       setAuth({ userId: d.userId, name: d.name, email: d.email, role: d.role, profileComplete: d.profileComplete },
                d.accessToken, d.refreshToken)
       toast.success(`Welcome to SmartHealth, ${d.name}!`)
       navigate(`/${d.role.toLowerCase()}/dashboard`)
     } finally { setLoading(false) }
+  }
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!verificationEmail || otp.trim().length < 4) {
+      toast.error('Enter the verification code from your email')
+      return
+    }
+    setVerifying(true)
+    try {
+      const { data } = await authApi.verifyEmail({ email: verificationEmail, otp: otp.trim() })
+      const d = data.data
+      setAuth({ userId: d.userId, name: d.name, email: d.email, role: d.role, profileComplete: d.profileComplete },
+               d.accessToken, d.refreshToken)
+      toast.success('Email verified successfully')
+      navigate(`/${d.role.toLowerCase()}/dashboard`)
+    } finally { setVerifying(false) }
+  }
+
+  const handleResend = async () => {
+    if (!verificationEmail) return
+    setResending(true)
+    try {
+      await authApi.resendVerificationOtp(verificationEmail)
+      toast.success('Verification code resent')
+    } finally {
+      setResending(false)
+    }
   }
 
   const selectedRole = ROLES.find(r => r.value === form.role)!
@@ -144,8 +183,44 @@ export default function RegisterPage() {
 
           <div className="mb-8">
             <h1 className="text-2xl font-semibold text-slate-900 mb-2">Create your account</h1>
-            <p className="text-slate-500 text-sm">Get started with SmartHealth today</p>
+            <p className="text-slate-500 text-sm">
+              {verificationEmail ? 'Enter the code sent to your email to activate your account' : 'Get started with SmartHealth today'}
+            </p>
           </div>
+
+          {verificationEmail && (
+            <form onSubmit={handleVerify} className="mb-8 space-y-4 rounded-2xl border border-blue-100 bg-blue-50/60 p-5">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">Verify {verificationEmail}</p>
+                <p className="text-xs text-slate-600 mt-1">The account is created but inactive until the OTP is confirmed.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Verification code</label>
+                <input
+                  value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  inputMode="numeric"
+                  placeholder="Enter 6-digit code"
+                  className="w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:border-blue-500 transition-all"
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="submit"
+                  disabled={verifying}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:opacity-50">
+                  {verifying ? 'Verifying...' : 'Verify email'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-50 disabled:opacity-50">
+                  {resending ? 'Resending...' : 'Resend code'}
+                </button>
+              </div>
+            </form>
+          )}
 
           {/* Role selector */}
           <div className="mb-8">
@@ -178,6 +253,7 @@ export default function RegisterPage() {
           </div>
 
           {/* Form */}
+          {!verificationEmail && (
           <form onSubmit={handleSubmit} className="space-y-5">
 
             {/* Name */}
@@ -307,6 +383,7 @@ export default function RegisterPage() {
               )}
             </button>
           </form>
+          )}
 
           <p className="text-center text-slate-500 text-sm mt-8">
             Already have an account?{' '}

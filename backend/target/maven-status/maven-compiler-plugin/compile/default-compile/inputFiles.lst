@@ -29,6 +29,7 @@ D:\healthcare-system-new\backend\src\main\java\com\healthcare\repository\RatingR
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\entity\Patient.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\dto\response\AuthResponse.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\repository\RefreshTokenRepository.java
+D:\healthcare-system-new\backend\src\main\java\com\healthcare\service\AppointmentSlipPdfService.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\service\AuditLogService.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\dto\request\RatingRequest.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\exception\GlobalExceptionHandler.java
@@ -37,13 +38,16 @@ D:\healthcare-system-new\backend\src\main\java\com\healthcare\exception\BadReque
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\dto\request\RegisterRequest.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\dto\request\LoginRequest.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\exception\ConflictException.java
+D:\healthcare-system-new\backend\src\main\java\com\healthcare\entity\EmailVerificationToken.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\repository\DoctorAvailabilityRepository.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\dto\response\AvailabilityResponse.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\service\PrescriptionService.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\dto\request\DoctorProfileRequest.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\service\PaymentService.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\controller\PaymentController.java
+D:\healthcare-system-new\backend\src\main\java\com\healthcare\repository\EmailVerificationTokenRepository.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\repository\UserRepository.java
+D:\healthcare-system-new\backend\src\main\java\com\healthcare\dto\request\VerifyEmailRequest.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\entity\Doctor.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\service\DoctorService.java
 D:\healthcare-system-new\backend\src\main\java\com\healthcare\entity\RefreshToken.java

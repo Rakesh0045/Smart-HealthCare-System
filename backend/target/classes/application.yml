@@ -30,8 +30,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:noreply.healthcare@gmail.com}
-    password: ${MAIL_PASSWORD:your-app-password}
+    username: ${MAIL_USERNAME:rakeshparida2801@gmail.com}
+    password: ${MAIL_PASSWORD:azjahvmaqcgdbatn}
     properties:
       mail:
         smtp:
@@ -70,12 +70,12 @@ app:
     key-secret: ${RAZORPAY_KEY_SECRET:1hY78SBeQrXeHSD4CK2nx3od}
 
   twilio:
-    account-sid: ${TWILIO_ACCOUNT_SID:your-twilio-account-sid}
-    auth-token: ${TWILIO_AUTH_TOKEN:your-twilio-auth-token}
-    from-number: ${TWILIO_FROM_NUMBER:+1234567890}
+    account-sid: ${TWILIO_ACCOUNT_SID:AC41c4e1212b14ad1c15a0416dac42adc8}
+    auth-token: ${TWILIO_AUTH_TOKEN:083bf0263c58a5108060dde392e0899b}
+    from-number: ${TWILIO_FROM_NUMBER:+19476228494}
 
   notification:
-    mode: ${NOTIFICATION_MODE:dev}   # dev = mock logs | prod = real email+SMS
+    mode: ${NOTIFICATION_MODE:prod}   # dev = mock logs | prod = real email+SMS
 
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
 

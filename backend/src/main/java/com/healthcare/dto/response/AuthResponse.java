@@ -1,8 +1,12 @@
 package com.healthcare.dto.response;
+
 import com.healthcare.enums.Role;
 import lombok.*;
 
-@Data @Builder @NoArgsConstructor @AllArgsConstructor
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AuthResponse {
     private String accessToken;
     private String refreshToken;
@@ -12,4 +16,5 @@ public class AuthResponse {
     private String email;
     private Role role;
     private boolean profileComplete;
+    private boolean verificationRequired;
 }

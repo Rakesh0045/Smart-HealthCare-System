@@ -130,6 +130,8 @@ export const authApi = {
   login: (data: any) => api.post('/auth/login', data),
   logout: () => api.post('/auth/logout'),
   refresh: (token: string) => api.post('/auth/refresh', null, { params: { refreshToken: token } }),
+  verifyEmail: (data: { email: string; otp: string }) => api.post('/auth/verify-email', data),
+  resendVerificationOtp: (email: string) => api.post('/auth/resend-verification-otp', null, { params: { email } }),
 }
 
 export const doctorApi = {

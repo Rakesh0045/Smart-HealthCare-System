@@ -5,7 +5,7 @@ import { appointmentApi, prescriptionApi } from '../../api'
 import {
   Calendar, FileText, Brain, Search,
   Plus, ArrowRight, Clock, CheckCircle2,
-  Video, Activity, TrendingUp,
+  Activity, TrendingUp,
   ChevronRight, AlarmClock, Pill, Check
 } from 'lucide-react'
 
@@ -59,6 +59,9 @@ export default function PatientDashboard() {
   const completed = appointments.filter(a => a.status === 'COMPLETED')
   const noShowAppointments = appointments.filter(a => a.status === 'NO_SHOW')
   const latestNoShow = noShowAppointments[0]
+  const pendingPaymentAppointment = [...upcoming]
+    .filter(a => (a.paymentStatus || 'PENDING') !== 'PAID')
+    .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())[0]
   const nextAppointment = [...upcoming].sort((a, b) =>
     new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())[0]
   const followUpReminder = [...prescriptions]
@@ -505,6 +508,26 @@ export default function PatientDashboard() {
           </div>
         )}
 
+        {pendingPaymentAppointment && (
+          <div className="teal-card" style={{ marginBottom: 24, padding: 18, borderColor: '#fde68a', background: '#fffbeb', display: 'flex', alignItems: 'center', gap: 14, animationDelay: '0.2s' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Clock size={20} color="#d97706" />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 800, color: '#92400e', margin: '0 0 3px' }}>
+                Payment pending for Dr. {pendingPaymentAppointment.doctorName}
+              </p>
+              <p style={{ fontSize: 12, color: '#92400e', margin: 0 }}>
+                You can pay online now or pay at the clinic during your appointment.
+              </p>
+            </div>
+            <button className="teal-btn-primary" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)', boxShadow: '0 4px 14px rgba(245,158,11,0.25)' }}
+              onClick={() => navigate(`/patient/book?payAppointment=${pendingPaymentAppointment.id}`)}>
+              <Calendar size={14} /> View Payment
+            </button>
+          </div>
+        )}
+
         <div className="pat-main-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 1fr) minmax(290px, 340px)', gap: 20 }}>
 
           {/* ─── Next Appointment ─── */}
@@ -566,17 +589,15 @@ export default function PatientDashboard() {
                   ))}
                 </div>
 
-                {followUpReminderCard}
-
                 {/* Actions */}
-                <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                  <button className="teal-btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>
-                    <Video size={14} /> Join Call
-                  </button>
+                <div style={{ display: 'flex', gap: 8, marginTop: 2, marginBottom: 14 }}>
                   <button className="teal-btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => navigate('/patient/appointments')}>
                     <Calendar size={14} /> Reschedule
                   </button>
                 </div>
+
+                {followUpReminderCard}
+
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

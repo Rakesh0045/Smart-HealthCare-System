@@ -118,6 +118,10 @@ export default function DoctorDashboard() {
   const pendingRx = appointments.filter(a => a.status === 'COMPLETED' && !a.hasPrescription).length
   const revenue = appointments.filter(a => a.paymentStatus === 'PAID').reduce((s, a) => s + (a.consultationFee || 0), 0)
   const unreadNotif = notifications.filter(n => !n.isRead).length
+  const todayScheduled = todayAppointments.filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED').length
+  const todayPendingPayment = todayAppointments.filter(a => (a.paymentStatus || 'PENDING') !== 'PAID' && a.status !== 'CANCELLED' && a.status !== 'NO_SHOW').length
+  const todayPendingRx = todayAppointments.filter(a => a.status === 'COMPLETED' && !a.hasPrescription).length
+  const todayNoShow = todayAppointments.filter(a => a.status === 'NO_SHOW').length
 
   const openCompleteModal = (appointment: any) => {
     setCompleteNotes('')
@@ -289,6 +293,25 @@ export default function DoctorDashboard() {
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{s.change}</span>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{s.changeLabel}</span>
                 </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="pv-card" style={{ padding: 18, marginBottom: 24, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, animationDelay: '0.16s' }}>
+          {[
+            { label: 'Today scheduled', value: todayScheduled, color: '#0d9488', bg: '#f0fdfa', icon: Calendar },
+            { label: 'Pending payment', value: todayPendingPayment, color: '#d97706', bg: '#fffbeb', icon: DollarSign },
+            { label: 'Pending prescription', value: todayPendingRx, color: '#7c3aed', bg: '#f5f3ff', icon: FileText },
+            { label: 'No-show today', value: todayNoShow, color: '#475569', bg: '#f8fafc', icon: UserX },
+          ].map(item => (
+            <div key={item.label} style={{ padding: '12px 14px', borderRadius: 12, background: item.bg, border: `1px solid ${item.color}22`, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.color }}>
+                <item.icon size={16} />
+              </div>
+              <div>
+                <p className="pv-mono" style={{ fontSize: 20, fontWeight: 800, color: item.color, margin: 0, lineHeight: 1 }}>{item.value}</p>
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', margin: '3px 0 0' }}>{item.label}</p>
               </div>
             </div>
           ))}

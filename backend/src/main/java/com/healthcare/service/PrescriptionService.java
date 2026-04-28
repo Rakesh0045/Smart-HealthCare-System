@@ -106,8 +106,10 @@ public class PrescriptionService {
                 }
 
                 Prescription saved = prescriptionRepo.save(prescription);
+                byte[] prescriptionPdf = generatePrescriptionPdf(saved.getId());
                 notificationService.sendPrescriptionNotification(
-                                appointment.getPatient().getUser(), appointment.getDoctor().getUser().getName());
+                                appointment.getPatient().getUser(), appointment.getDoctor().getUser().getName(),
+                                prescriptionPdf);
                 auditLogService.log(doctorUserId, "PRESCRIPTION_ADDED", "Prescription",
                                 saved.getId(), "For appointment " + req.getAppointmentId());
                 return mapToResponse(saved);

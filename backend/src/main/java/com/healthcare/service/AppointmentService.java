@@ -31,6 +31,7 @@ public class AppointmentService {
     private final RatingRepository ratingRepo;
     private final PaymentRepository paymentRepo;
     private final SlotGenerationService slotService;
+    private final AppointmentSlipPdfService appointmentSlipPdfService;
     private final NotificationService notificationService;
     private final AuditLogService auditLogService;
 
@@ -77,8 +78,10 @@ public class AppointmentService {
         appointment = appointmentRepo.save(appointment);
 
         String details = buildAppointmentDetails(appointment, doctor, patient);
+        byte[] slip = appointmentSlipPdfService.generateSlip(appointment,
+                "Appointment Slip", "Please keep this slip for your visit.");
         notificationService.sendAppointmentConfirmation(
-                patient.getUser(), doctor.getUser(), details);
+                patient.getUser(), doctor.getUser(), details, slip, slip);
 
         auditLogService.log(userId, "APPOINTMENT_BOOKED", "Appointment",
                 appointment.getId(), "Booked with Dr. " + doctor.getUser().getName());
@@ -162,6 +165,12 @@ public class AppointmentService {
         // Preserve payment status for rescheduled appointments
         old = appointmentRepo.save(old);
 
+        byte[] slip = appointmentSlipPdfService.generateSlip(old,
+                "Rescheduled Appointment Slip", "Your appointment has been updated.");
+        notificationService.sendAppointmentConfirmation(
+                old.getPatient().getUser(), old.getDoctor().getUser(),
+                buildAppointmentDetails(old, old.getDoctor(), old.getPatient()), slip, slip);
+
         auditLogService.log(userId, "APPOINTMENT_RESCHEDULED", "Appointment",
                 appointmentId, "Rescheduled to " + req.getAppointmentDate());
 
@@ -220,8 +229,10 @@ public class AppointmentService {
         paymentRepo.save(payment);
 
         appointment.setPaymentStatus(PaymentStatus.PAID);
+        byte[] updatedSlip = appointmentSlipPdfService.generateSlip(appointment,
+                "Paid Appointment Slip", "Payment has been completed for this visit.");
         notificationService.sendPaymentConfirmation(
-                appointment.getPatient().getUser(), appointment.getDoctor().getConsultationFee());
+                appointment.getPatient().getUser(), appointment.getDoctor().getConsultationFee(), updatedSlip);
     }
 
     @Transactional

@@ -6,6 +6,7 @@ import com.healthcare.dto.response.AvailabilityResponse;
 import com.healthcare.dto.response.DoctorResponse;
 import com.healthcare.dto.response.SlotResponse;
 import com.healthcare.entity.*;
+import com.healthcare.enums.AppointmentStatus;
 import com.healthcare.exception.*;
 import com.healthcare.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +23,9 @@ public class DoctorService {
     private final DoctorRepository doctorRepo;
     private final UserRepository userRepo;
     private final DoctorAvailabilityRepository availabilityRepo;
+    private final AppointmentRepository appointmentRepo;
     private final SlotGenerationService slotService;
+    private final NotificationService notificationService;
     private final AuditLogService auditLogService;
 
     @Value("${app.slot.duration-minutes:30}")
@@ -104,8 +107,19 @@ public class DoctorService {
     public void toggleAvailability(Long userId) {
         Doctor doctor = doctorRepo.findByUserId(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Doctor profile not found"));
-        doctor.setIsAvailable(!Boolean.TRUE.equals(doctor.getIsAvailable()));
+        boolean nowAvailable = !Boolean.TRUE.equals(doctor.getIsAvailable());
+        doctor.setIsAvailable(nowAvailable);
         doctorRepo.save(doctor);
+
+        if (!nowAvailable) {
+            LocalDate today = LocalDate.now();
+            List<Appointment> affected = appointmentRepo.findByDoctorIdAndAppointmentDate(doctor.getId(), today)
+                    .stream()
+                    .filter(a -> a.getStatus() != AppointmentStatus.CANCELLED
+                            && a.getStatus() != AppointmentStatus.COMPLETED)
+                    .toList();
+            notificationService.sendDoctorUnavailableNotification(affected, doctor.getUser().getName());
+        }
     }
 
     public DoctorResponse mapToResponse(Doctor d) {

@@ -42,6 +42,8 @@ export default function DoctorAppointments() {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('ALL')
   const [search, setSearch] = useState('')
+  const [paymentFilter, setPaymentFilter] = useState('ALL')
+  const [visitFilter, setVisitFilter] = useState('ALL')
   const [completingId, setCompletingId] = useState<number | null>(null)
   const [noShowId, setNoShowId] = useState<number | null>(null)
   const [completeModal, setCompleteModal] = useState<any>(null)
@@ -85,6 +87,8 @@ export default function DoctorAppointments() {
   // FIX: search trims whitespace and is case-insensitive; filter works independently of search
   const filtered = appointments
     .filter(a => filter === 'ALL' || a.status === filter)
+    .filter(a => paymentFilter === 'ALL' || (a.paymentStatus || 'PENDING') === paymentFilter)
+    .filter(a => visitFilter === 'ALL' || (visitFilter === 'FIRST' ? a.isFirstVisit : !a.isFirstVisit))
     .filter(a => {
       const q = search.trim().toLowerCase()
       if (!q) return true
@@ -92,6 +96,7 @@ export default function DoctorAppointments() {
         a.patientName?.toLowerCase().includes(q) ||
         a.patientEmail?.toLowerCase().includes(q) ||
         a.patientPhone?.includes(q) ||
+        a.paymentStatus?.toLowerCase().includes(q) ||
         a.cancellationReason?.toLowerCase().includes(q)
       )
     })
@@ -162,6 +167,17 @@ export default function DoctorAppointments() {
         }
         .search-box:focus { border-color: #0d9488; background: white; box-shadow: 0 0 0 3px rgba(13,148,136,0.08); }
         .search-box::placeholder { color: #94a3b8; }
+        .select-filter {
+          padding: 9px 10px;
+          border-radius: 10px;
+          border: 1.5px solid #e6f7f5;
+          background: white;
+          color: #475569;
+          font-size: 12px;
+          font-weight: 700;
+          font-family: 'Sora', sans-serif;
+          outline: none;
+        }
       `}</style>
 
       <div className="appt-page" style={{ maxWidth: 1200, margin: '0 auto', paddingBottom: 40 }}>
@@ -224,6 +240,13 @@ export default function DoctorAppointments() {
           </div>
         )}
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 14, background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: 16, animation: 'fadeSlide 0.4s ease both' }}>
+          <UserX size={16} color="#64748b" />
+          <p style={{ fontSize: 12.5, color: '#475569', fontWeight: 600, margin: 0 }}>
+            Same-day missed visits should be marked as no-show. Patient cancellations are only allowed before the appointment date.
+          </p>
+        </div>
+
         {/* TABLE CARD */}
         <div className="pv-card">
           {/* Card Header - tabs + search */}
@@ -257,9 +280,20 @@ export default function DoctorAppointments() {
                   </button>
                 )}
               </div>
-              {(search || filter !== 'ALL') && (
+              <select className="select-filter" value={paymentFilter} onChange={e => setPaymentFilter(e.target.value)}>
+                <option value="ALL">All payments</option>
+                <option value="PAID">Paid</option>
+                <option value="PENDING">Unpaid</option>
+                <option value="FAILED">Failed</option>
+              </select>
+              <select className="select-filter" value={visitFilter} onChange={e => setVisitFilter(e.target.value)}>
+                <option value="ALL">All visits</option>
+                <option value="FIRST">First visit</option>
+                <option value="RETURNING">Returning</option>
+              </select>
+              {(search || filter !== 'ALL' || paymentFilter !== 'ALL' || visitFilter !== 'ALL') && (
                 <button
-                  onClick={() => { setSearch(''); setFilter('ALL') }}
+                  onClick={() => { setSearch(''); setFilter('ALL'); setPaymentFilter('ALL'); setVisitFilter('ALL') }}
                   style={{ padding: '9px 14px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', fontSize: 12, fontWeight: 600, color: '#ef4444', cursor: 'pointer', fontFamily: 'Sora, sans-serif', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <X style={{ width: 13, height: 13 }} /> Clear filters
                 </button>

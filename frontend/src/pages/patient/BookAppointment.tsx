@@ -13,7 +13,9 @@ export default function BookAppointment() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const rescheduleAppointmentId = searchParams.get('reschedule') ? Number(searchParams.get('reschedule')) : null
-  const isRescheduleMode = Number.isFinite(rescheduleAppointmentId)
+  const payAppointmentId = searchParams.get('payAppointment') ? Number(searchParams.get('payAppointment')) : null
+  const isPayAppointmentMode = Number.isFinite(payAppointmentId)
+  const isRescheduleMode = Number.isFinite(rescheduleAppointmentId) && !isPayAppointmentMode
   const preDoctorId = searchParams.get('doctorId')
   const preDoctorName = searchParams.get('doctorName')
   const preDoctorSpecialization = searchParams.get('specialization')
@@ -46,6 +48,17 @@ export default function BookAppointment() {
     } finally {
       setSlotsLoading(false)
     }
+  }
+
+  const formatDisplayTime = (start?: string, end?: string) => {
+    const format = (time?: string) => {
+      if (!time) return '--:--'
+      const [h, m] = time.split(':')
+      const hour = parseInt(h, 10)
+      if (Number.isNaN(hour)) return time
+      return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`
+    }
+    return `${format(start)} - ${format(end)}`
   }
 
   const normalizeDoctorLabel = (value?: string) => (value || '').replace(/^dr\.?\s*/i, '').trim().toLowerCase()
@@ -92,7 +105,8 @@ export default function BookAppointment() {
   }
 
   useEffect(() => {
-    const appointmentRequest = rescheduleAppointmentId ? appointmentApi.getById(rescheduleAppointmentId) : Promise.resolve(null)
+    const appointmentLookupId = isPayAppointmentMode ? payAppointmentId : (isRescheduleMode ? rescheduleAppointmentId : null)
+    const appointmentRequest = appointmentLookupId ? appointmentApi.getById(appointmentLookupId) : Promise.resolve(null)
 
     Promise.all([doctorApi.getAll(), doctorApi.getSpecializations(), appointmentRequest]).then(([d, s, appointmentRes]) => {
       const docs = d.data.data || []
@@ -105,19 +119,21 @@ export default function BookAppointment() {
         typeof sp === 'string' ? sp : (sp.name || sp.specialization || sp.value || JSON.stringify(sp))
       )
       setSpecializations(specs)
-      const rescheduleAppt = appointmentRes?.data?.data || null
-      if (rescheduleAppt) {
-        setRescheduleSource(rescheduleAppt)
-        setReason(rescheduleAppt.reason || '')
-        setIsFirstVisit(rescheduleAppt.isFirstVisit ?? true)
+      const sourceAppointment = appointmentRes?.data?.data || null
+      if (sourceAppointment) {
+        setReason(sourceAppointment.reason || '')
+        setIsFirstVisit(sourceAppointment.isFirstVisit ?? true)
+        if (isRescheduleMode) {
+          setRescheduleSource(sourceAppointment)
+        }
       }
 
       const resolvedDoctor = (() => {
         if (preDoctorId) {
           return docs.find((doc: any) => doc.id === parseInt(preDoctorId))
         }
-        if (rescheduleAppt?.doctorId) {
-          return docs.find((doc: any) => doc.id === rescheduleAppt.doctorId)
+        if (sourceAppointment?.doctorId) {
+          return docs.find((doc: any) => doc.id === sourceAppointment.doctorId)
         }
         if (preDoctorName) {
           const targetName = normalizeDoctorLabel(preDoctorName)
@@ -133,6 +149,25 @@ export default function BookAppointment() {
         }
         return null
       })()
+
+      if (isPayAppointmentMode && sourceAppointment) {
+        const paymentDoctor = resolvedDoctor || {
+          id: sourceAppointment.doctorId,
+          name: sourceAppointment.doctorName,
+          specialization: sourceAppointment.doctorSpecialization,
+          consultationFee: sourceAppointment.consultationFee,
+        }
+        setSelectedDoctor(paymentDoctor)
+        setSelectedDate(sourceAppointment.appointmentDate || '')
+        setSelectedSlot({
+          startTime: sourceAppointment.startTime,
+          endTime: sourceAppointment.endTime,
+          displayTime: formatDisplayTime(sourceAppointment.startTime, sourceAppointment.endTime),
+        })
+        setBooked(sourceAppointment)
+        setStep(3)
+        return
+      }
 
       if (resolvedDoctor) {
         setSelectedDoctor(resolvedDoctor)

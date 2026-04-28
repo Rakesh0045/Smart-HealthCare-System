@@ -26,6 +26,7 @@ public class PaymentService {
 
     private final PaymentRepository paymentRepo;
     private final AppointmentRepository appointmentRepo;
+    private final AppointmentSlipPdfService appointmentSlipPdfService;
     private final NotificationService notificationService;
 
     @Value("${app.razorpay.key-id}")
@@ -40,15 +41,27 @@ public class PaymentService {
         if (!appointment.getPatient().getUser().getId().equals(userId)) {
             throw new BadRequestException("You can only pay for your own appointments.");
         }
+
+        Payment existingPayment = paymentRepo.findByAppointmentId(appointmentId).orElse(null);
         if (appointment.getPaymentStatus() == PaymentStatus.PAID
-                || paymentRepo.findByAppointmentId(appointmentId)
-                        .map(payment -> payment.getStatus() == PaymentStatus.PAID)
-                        .orElse(false)) {
+                || (existingPayment != null && existingPayment.getStatus() == PaymentStatus.PAID)) {
             Map<String, String> result = new HashMap<>();
             result.put("status", "ALREADY_PAID");
             result.put("message", "Appointment already paid");
             return result;
         }
+
+        if (existingPayment != null && existingPayment.getRazorpayOrderId() != null) {
+            Map<String, String> result = new HashMap<>();
+            result.put("orderId", existingPayment.getRazorpayOrderId());
+            result.put("amount", String.valueOf((int) (existingPayment.getAmount() * 100)));
+            result.put("currency", existingPayment.getCurrency() != null ? existingPayment.getCurrency() : "INR");
+            result.put("keyId", keyId);
+            result.put("status", "PENDING");
+            result.put("message", "Payment order already created");
+            return result;
+        }
+
         try {
             if (keyId == null || keySecret == null || keyId.contains("your_key")
                     || keySecret.contains("your_razorpay")) {
@@ -63,11 +76,14 @@ public class PaymentService {
             options.put("receipt", "receipt_appt_" + appointmentId);
             Order order = client.orders.create(options);
 
-            Payment payment = Payment.builder()
-                    .appointment(appointment)
-                    .amount(appointment.getDoctor().getConsultationFee())
-                    .razorpayOrderId(order.get("id"))
-                    .currency("INR").status(PaymentStatus.PENDING).build();
+            Payment payment = existingPayment != null ? existingPayment
+                    : Payment.builder()
+                            .appointment(appointment)
+                            .build();
+            payment.setAmount(appointment.getDoctor().getConsultationFee());
+            payment.setRazorpayOrderId(order.get("id"));
+            payment.setCurrency("INR");
+            payment.setStatus(PaymentStatus.PENDING);
             paymentRepo.save(payment);
 
             return Map.of(
@@ -104,8 +120,11 @@ public class PaymentService {
             appointment.setPaymentStatus(com.healthcare.enums.PaymentStatus.PAID);
             appointmentRepo.save(appointment);
 
+            byte[] updatedSlip = appointmentSlipPdfService.generateSlip(appointment,
+                    "Paid Appointment Slip", "Payment completed after booking.");
+
             notificationService.sendPaymentConfirmation(
-                    appointment.getPatient().getUser(), payment.getAmount());
+                    appointment.getPatient().getUser(), payment.getAmount(), updatedSlip);
         } catch (BadRequestException e) {
             throw e;
         } catch (Exception e) {

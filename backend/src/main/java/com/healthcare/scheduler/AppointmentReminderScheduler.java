@@ -1,8 +1,10 @@
 package com.healthcare.scheduler;
 
 import com.healthcare.entity.Appointment;
+import com.healthcare.entity.Prescription;
 import com.healthcare.enums.AppointmentStatus;
 import com.healthcare.repository.AppointmentRepository;
+import com.healthcare.repository.PrescriptionRepository;
 import com.healthcare.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +21,7 @@ import java.util.List;
 public class AppointmentReminderScheduler {
 
     private final AppointmentRepository appointmentRepo;
+    private final PrescriptionRepository prescriptionRepo;
     private final NotificationService notificationService;
 
     /**
@@ -41,8 +44,7 @@ public class AppointmentReminderScheduler {
                         appointment.getDoctor().getUser().getName(),
                         appointment.getDoctor().getSpecialization(),
                         appointment.getAppointmentDate(),
-                        appointment.getStartTime()
-                );
+                        appointment.getStartTime());
                 notificationService.sendAppointmentReminder(
                         appointment.getPatient().getUser(), details);
 
@@ -56,7 +58,8 @@ public class AppointmentReminderScheduler {
     }
 
     /**
-     * Runs every hour — auto-completes missed/no-show appointments older than 2 hours.
+     * Runs every hour — auto-completes missed/no-show appointments older than 2
+     * hours.
      */
     @Scheduled(cron = "0 0 * * * *")
     @Transactional
@@ -70,11 +73,39 @@ public class AppointmentReminderScheduler {
         for (Appointment a : missed) {
             a.setStatus(AppointmentStatus.NO_SHOW);
             appointmentRepo.save(a);
+            notificationService.sendNoShowNotification(a.getPatient().getUser(),
+                    String.format("Dr. %s | %s at %s", a.getDoctor().getUser().getName(), a.getAppointmentDate(),
+                            a.getStartTime()),
+                    a.getDoctor().getUser().getName());
             log.debug("Marked appointment {} as NO_SHOW", a.getId());
         }
 
         if (!missed.isEmpty()) {
             log.info("Auto-marked {} appointments as NO_SHOW", missed.size());
+        }
+    }
+
+    /**
+     * Runs every day at 10 AM — reminds patients about follow-ups scheduled for
+     * tomorrow.
+     */
+    @Scheduled(cron = "0 0 10 * * *")
+    @Transactional
+    public void sendFollowUpReminders() {
+        LocalDate tomorrow = LocalDate.now().plusDays(1);
+        List<Prescription> prescriptions = prescriptionRepo.findByFollowUpDateAndIsActiveTrue(tomorrow);
+        log.info("Sending follow-up reminders for {} prescriptions on {}", prescriptions.size(), tomorrow);
+
+        for (Prescription prescription : prescriptions) {
+            try {
+                notificationService.sendFollowUpReminder(
+                        prescription.getPatient().getUser(),
+                        prescription.getDoctor().getUser().getName(),
+                        tomorrow.toString());
+            } catch (Exception e) {
+                log.error("Failed to send follow-up reminder for prescription {}: {}",
+                        prescription.getId(), e.getMessage());
+            }
         }
     }
 }
