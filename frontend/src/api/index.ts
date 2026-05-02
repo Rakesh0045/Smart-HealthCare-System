@@ -173,6 +173,7 @@ export const prescriptionApi = {
 export const paymentApi = {
   createOrder: (appointmentId: number) => api.post(`/payments/create-order/${appointmentId}`),
   verify: (data: any) => api.post('/payments/verify', data),
+  payAtAppointment: (appointmentId: number) => api.post(`/payments/pay-at-appointment/${appointmentId}`),
 }
 
 export const notificationApi = {

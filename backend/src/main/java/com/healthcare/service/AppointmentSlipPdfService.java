@@ -2,571 +2,728 @@ package com.healthcare.service;
 
 import com.healthcare.entity.Appointment;
 import com.itextpdf.io.font.constants.StandardFonts;
+import com.itextpdf.io.image.ImageDataFactory;
+import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
+import com.itextpdf.kernel.events.PdfDocumentEvent;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.geom.PageSize;
-import com.itextpdf.kernel.geom.Rectangle;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
+import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
 import com.itextpdf.layout.Canvas;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.borders.SolidBorder;
-import com.itextpdf.layout.element.Cell;
-import com.itextpdf.layout.element.Div;
-import com.itextpdf.layout.element.Paragraph;
-import com.itextpdf.layout.element.Table;
-import com.itextpdf.layout.element.Text;
-import com.itextpdf.layout.element.Image;
-import com.itextpdf.io.image.ImageData;
-import com.itextpdf.io.image.ImageDataFactory;
-import com.itextpdf.layout.properties.BorderRadius;
-import com.itextpdf.layout.properties.HorizontalAlignment;
-import com.itextpdf.layout.properties.TextAlignment;
-import com.itextpdf.layout.properties.UnitValue;
-import com.itextpdf.layout.properties.VerticalAlignment;
+import com.itextpdf.layout.element.*;
+import com.itextpdf.layout.properties.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
- * Generates a formal OPD-style appointment slip PDF.
+ * Generates a clean, professional OPD Appointment Slip PDF.
  *
- * ── Fully dynamic (from Appointment entity) ───────────────────────────────
- * appointment.getId()
- * appointment.getStatus()
- * appointment.getAppointmentDate()
- * appointment.getStartTime() / appointment.getEndTime()
- * appointment.getReason()
- * appointment.getPaymentStatus()
- * appointment.getPatient().getUser().getName()
- * appointment.getPatient().getUser().getEmail()
- * appointment.getPatient().getUser().getPhone()
- * appointment.getDoctor().getUser().getName()
- * appointment.getDoctor().getSpecialization()
- * appointment.getDoctor().getHospital()
- * appointment.getDoctor().getConsultationFee()
- *
- * ── Caller-supplied ────────────────────────────────────────────────────────
- * title – document type label, e.g. "Out Patient Department"
- * subtitle – sub-label, e.g. "e-OPD Appointment Card"
- *
- * ── Static / branding (update constants below) ────────────────────────────
- * HOSPITAL_NAME – your hospital / clinic name [TODO: from config]
- * HOSPITAL_ADDR – address line [TODO: from config]
- * HOSPITAL_CITY – city line [TODO: from config]
- * SUPPORT_PHONE – helpline number [TODO: from config]
- * NOTICE_TEXT – footer notice (e.g. no-smoking) [TODO: from config]
+ * Design principles:
+ * - Minimal, whitespace-driven layout
+ * - Restrained colour palette (teal accent + neutral greys)
+ * - Payment status as an inline pill — not a heavy card
+ * - Compact schedule row instead of a dark slab
+ * - Consistent 6 px card border-radius, single border weight
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AppointmentSlipPdfService {
 
-        // ── Branding ─────────────────────────────────────────────────────────
+        // ── Branding ──────────────────────────────────────────────────────────────
         private static final String HOSPITAL_NAME = "MediCare Hospital";
-        private static final String HOSPITAL_ADDR = "123, Healthcare Avenue, Medical District";
-        private static final String HOSPITAL_CITY = "Kolkata, West Bengal - 700001";
-        private static final String SUPPORT_PHONE = "Helpline: 1800-000-0000";
-        private static final String NOTICE_TEXT = "SMOKING AND TOBACCO PRODUCTS STRICTLY PROHIBITED IN HOSPITAL PREMISES";
-        private static final String CARD_LABEL = "e-OPD Appointment Card";
+        private static final String HOSPITAL_TAGLINE = "Smarter Care, Better Health";
+        private static final String SUPPORT_PHONE = "1800-000-0000";
+        private static final String WEBSITE = "www.medicare.health";
 
-        // ── Colours ──────────────────────────────────────────────────────────
-        private static final DeviceRgb C_BLACK = new DeviceRgb(0, 0, 0);
-        private static final DeviceRgb C_NAVY = new DeviceRgb(10, 35, 100);
-        private static final DeviceRgb C_BLUE = new DeviceRgb(30, 90, 200);
-        private static final DeviceRgb C_BLUE_DARK = new DeviceRgb(20, 60, 160);
-        private static final DeviceRgb C_HEADER_BG = new DeviceRgb(230, 240, 255);
-        private static final DeviceRgb C_ROW_ALT = new DeviceRgb(245, 248, 255);
-        private static final DeviceRgb C_LABEL_BG = new DeviceRgb(235, 242, 255);
-        private static final DeviceRgb C_BORDER = new DeviceRgb(180, 200, 235);
+        // ── Colour Palette ────────────────────────────────────────────────────────
+        private static final DeviceRgb C_TEAL = new DeviceRgb(13, 148, 136);
+        private static final DeviceRgb C_TEAL_LIGHT = new DeviceRgb(240, 253, 250);
+        private static final DeviceRgb C_TEAL_MID = new DeviceRgb(180, 235, 225);
+        private static final DeviceRgb C_NAVY = new DeviceRgb(15, 40, 90);
+        private static final DeviceRgb C_NAVY_MID = new DeviceRgb(37, 99, 235);
+        private static final DeviceRgb C_DARK = new DeviceRgb(17, 24, 39);
+        private static final DeviceRgb C_SLATE = new DeviceRgb(71, 85, 105);
+        private static final DeviceRgb C_MUTED = new DeviceRgb(148, 163, 184);
         private static final DeviceRgb C_WHITE = new DeviceRgb(255, 255, 255);
-        private static final DeviceRgb C_MUTED = new DeviceRgb(100, 110, 130);
-        private static final DeviceRgb C_TEXT = new DeviceRgb(15, 20, 40);
-        private static final DeviceRgb C_GREEN_BG = new DeviceRgb(215, 245, 225);
-        private static final DeviceRgb C_GREEN_FG = new DeviceRgb(20, 130, 65);
-        private static final DeviceRgb C_AMBER_BG = new DeviceRgb(255, 244, 210);
-        private static final DeviceRgb C_AMBER_FG = new DeviceRgb(170, 95, 0);
-        private static final DeviceRgb C_RED_BG = new DeviceRgb(255, 228, 228);
-        private static final DeviceRgb C_RED_FG = new DeviceRgb(195, 35, 35);
-        private static final DeviceRgb C_DIVIDER = new DeviceRgb(200, 215, 240);
+        private static final DeviceRgb C_LIGHT_BG = new DeviceRgb(249, 250, 251);
+        private static final DeviceRgb C_BORDER = new DeviceRgb(226, 232, 240);
+        private static final DeviceRgb C_CARD_BG = new DeviceRgb(252, 253, 254);
 
-        // ── Geometry ─────────────────────────────────────────────────────────
-        private static final float PW = PageSize.A4.getWidth();
-        private static final float PH = PageSize.A4.getHeight();
-        private static final float MX = 30f;
-        private static final float MY = 28f;
-        private static final float CW = PW - MX * 2;
+        // Status colours
+        private static final DeviceRgb C_GREEN_BG = new DeviceRgb(220, 252, 231);
+        private static final DeviceRgb C_GREEN_FG = new DeviceRgb(22, 101, 52);
+        private static final DeviceRgb C_GREEN_BORD = new DeviceRgb(134, 239, 172);
+        private static final DeviceRgb C_AMBER_BG = new DeviceRgb(255, 251, 235);
+        private static final DeviceRgb C_AMBER_FG = new DeviceRgb(120, 53, 15);
+        private static final DeviceRgb C_AMBER_BORD = new DeviceRgb(252, 211, 77);
+        private static final DeviceRgb C_RED_BG = new DeviceRgb(254, 226, 226);
+        private static final DeviceRgb C_RED_FG = new DeviceRgb(153, 27, 27);
+        private static final DeviceRgb C_RED_BORD = new DeviceRgb(252, 165, 165);
+        private static final DeviceRgb C_BLUE_BG = new DeviceRgb(219, 234, 254);
+        private static final DeviceRgb C_BLUE_FG = new DeviceRgb(30, 64, 175);
+        private static final DeviceRgb C_BLUE_BORD = new DeviceRgb(147, 197, 253);
 
-        // ── Fonts ────────────────────────────────────────────────────────────
-        private com.itextpdf.kernel.font.PdfFont FB; // bold
-        private com.itextpdf.kernel.font.PdfFont FR; // regular
-        private com.itextpdf.kernel.font.PdfFont FO; // oblique (italic substitute)
+        // ── Page geometry ──────────────────────────────────────────────────────────
+        private static final float MARGIN_X = 32f;
+        private static final float MARGIN_Y = 32f;
 
-        // ═════════════════════════════════════════════════════════════════════
-        // ENTRY POINT
-        // ═════════════════════════════════════════════════════════════════════
+        // ── Fonts ──────────────────────────────────────────────────────────────────
+        private PdfFont FB;
+        private PdfFont FR;
+        private PdfFont FI;
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PUBLIC ENTRY POINT
+        // ═══════════════════════════════════════════════════════════════════════════
 
         public byte[] generateSlip(Appointment appointment, String title, String subtitle) {
                 try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
 
-                        PdfDocument pdf = new PdfDocument(new PdfWriter(baos));
-                        pdf.addNewPage(PageSize.A4);
+                        PdfWriter writer = new PdfWriter(baos);
+                        PdfDocument pdfDoc = new PdfDocument(writer);
+                        Document document = new Document(pdfDoc, PageSize.A4);
+                        document.setMargins(MARGIN_Y, MARGIN_X, MARGIN_Y + 22f, MARGIN_X);
 
-                        Document doc = new Document(pdf, PageSize.A4);
-                        doc.setMargins(MY, MX, MY, MX);
+                        FB = PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
+                        FR = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+                        FI = PdfFontFactory.createFont(StandardFonts.HELVETICA_OBLIQUE);
 
-                        FB = com.itextpdf.kernel.font.PdfFontFactory.createFont(StandardFonts.HELVETICA_BOLD);
-                        FR = com.itextpdf.kernel.font.PdfFontFactory.createFont(StandardFonts.HELVETICA);
-                        FO = com.itextpdf.kernel.font.PdfFontFactory.createFont(StandardFonts.HELVETICA_OBLIQUE);
+                        addPageDecoration(pdfDoc);
 
-                        // Draw page border on canvas
-                        PdfPage pg = pdf.getFirstPage();
-                        drawPageBorder(pg);
+                        // 1. Header: logo + name + tagline + website
+                        document.add(buildHeader(appointment));
 
-                        // ── 1. Top meta bar (Appt ID left, UHID right) ───────────────
-                        doc.add(topMetaBar(appointment));
+                        // 2. Thin full-width divider
+                        document.add(new LineSeparator(new SolidLine(0.6f))
+                                        .setStrokeColor(C_BORDER).setMarginBottom(10));
 
-                        // ── 2. Hospital header (logo placeholder | name | fee badge) ─
-                        doc.add(hospitalHeader(appointment, title));
+                        // 3. ID ribbon (navy bar with appt ID / UHID / generated date + payment pill)
+                        document.add(buildApptRibbon(appointment));
 
-                        // ── 3. Horizontal rule ────────────────────────────────────────
-                        doc.add(rule(C_NAVY, 1.2f));
+                        // 4. Two-column info cards: Patient | Doctor
+                        document.add(buildInfoCards(appointment));
 
-                        // ── 4. Notice text ────────────────────────────────────────────
-                        doc.add(new Paragraph(NOTICE_TEXT)
-                                        .setFont(FR).setFontSize(7f).setFontColor(C_MUTED)
-                                        .setTextAlignment(TextAlignment.CENTER)
-                                        .setMarginTop(3).setMarginBottom(2));
+                        // 5. Schedule row (compact, light background)
+                        document.add(buildScheduleCard(appointment));
 
-                        // ── 5. Card label ─────────────────────────────────────────────
-                        doc.add(new Paragraph(CARD_LABEL)
-                                        .setFont(FB).setFontSize(9f).setFontColor(C_NAVY)
-                                        .setTextAlignment(TextAlignment.CENTER)
-                                        .setMarginBottom(6));
+                        // 6. Reason + status
+                        document.add(buildReasonStatusRow(appointment));
 
-                        // ── 6. Horizontal rule ────────────────────────────────────────
-                        doc.add(rule(C_DIVIDER, 0.8f));
+                        // 7. Notice box
+                        document.add(buildNoticeBox());
 
-                        // ── 7. Clinic / doctor line ───────────────────────────────────
-                        doc.add(clinicDoctorLine(appointment));
+                        // 8. Signature area
+                        document.add(buildSignatureArea(appointment));
 
-                        // ── 8. Main patient info table ────────────────────────────────
-                        doc.add(rule(C_BORDER, 0.6f));
-                        doc.add(patientTable(appointment));
-
-                        // ── 9. Schedule table ─────────────────────────────────────────
-                        doc.add(scheduleTable(appointment));
-
-                        // ── 10. Footer ────────────────────────────────────────────────
-                        doc.add(rule(C_NAVY, 1f));
-                        doc.add(footerRow(appointment));
-
-                        doc.close();
+                        document.close();
                         return baos.toByteArray();
 
                 } catch (Exception e) {
+                        log.error("Appointment slip PDF generation failed", e);
                         throw new IllegalStateException("Unable to generate appointment slip PDF", e);
                 }
         }
 
-        // ═════════════════════════════════════════════════════════════════════
-        // SECTION 1 – TOP META BAR
-        // ═════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SECTION 1 – HEADER (no address, clean centred layout)
+        // ═══════════════════════════════════════════════════════════════════════════
 
-        /** Appointment ID (left) · Generated date (centre) · Patient ref (right) */
-        private Table topMetaBar(Appointment appt) {
-                Table t = new Table(UnitValue.createPercentArray(new float[] { 50, 50 }))
-                                .useAllAvailableWidth().setMarginBottom(4);
-
-                // Left: appointment meta
-                Cell left = noBorderCell();
-                left.add(new Paragraph()
-                                .add(new Text("Appointment ID: ").setFont(FB).setFontSize(9f).setFontColor(C_BLACK))
-                                .add(new Text(String.format("%010d", appt.getId())).setFont(FB).setFontSize(9f)
-                                                .setFontColor(C_BLACK))
-                                .setMargin(0));
-                left.add(new Paragraph()
-                                .add(new Text("Appointment Date: ").setFont(FB).setFontSize(9f).setFontColor(C_BLACK))
-                                .add(new Text(
-                                                appt.getAppointmentDate()
-                                                                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
-                                                                + " ("
-                                                                + appt.getStartTime()
-                                                                                .format(DateTimeFormatter
-                                                                                                .ofPattern("hh:mm a"))
-                                                                                .toUpperCase()
-                                                                + "-"
-                                                                + appt.getEndTime()
-                                                                                .format(DateTimeFormatter
-                                                                                                .ofPattern("hh:mm a"))
-                                                                                .toUpperCase()
-                                                                + ")")
-                                                .setFont(FB).setFontSize(9f).setFontColor(C_BLACK))
-                                .setMarginTop(2).setMargin(0));
-                t.addCell(left);
-
-                // Right: UHID-style patient reference box
-                Cell right = noBorderCell();
-                Div uidBox = new Div()
-                                .setHorizontalAlignment(HorizontalAlignment.RIGHT);
-                uidBox.add(new Paragraph()
-                                .add(new Text("UHID: ").setFont(FB).setFontSize(14f).setFontColor(C_BLACK))
-                                .add(new Text(String.format("%010d", appt.getPatient().getId()))
-                                                .setFont(FB).setFontSize(14f).setFontColor(C_BLACK))
-                                .setMargin(0).setTextAlignment(TextAlignment.RIGHT));
-                uidBox.add(new Paragraph("(WEB Registration)")
-                                .setFont(FR).setFontSize(8f).setFontColor(C_MUTED)
-                                .setTextAlignment(TextAlignment.RIGHT).setMarginTop(1).setMarginBottom(1));
-                // Add fake barcode lines (placeholder for actual barcode)
-                uidBox.add(new Paragraph("|||| ||| |||| || ||| | ||| |||| ||")
-                                .setFont(FB).setFontSize(14f).setFontColor(C_BLACK)
-                                .setTextAlignment(TextAlignment.RIGHT).setMargin(0));
-                right.add(uidBox);
-                t.addCell(right);
-
-                return t;
-        }
-
-        // ═════════════════════════════════════════════════════════════════════
-        // SECTION 2 – HOSPITAL HEADER
-        // ═════════════════════════════════════════════════════════════════════
-
-        private Table hospitalHeader(Appointment appt, String title) {
-                Table t = new Table(UnitValue.createPercentArray(new float[] { 25, 50, 25 }))
-                                .useAllAvailableWidth().setMarginBottom(4);
+        private Table buildHeader(Appointment appt) {
+                // 3 columns: logo | hospital info | doc title label
+                Table t = new Table(UnitValue.createPercentArray(new float[] { 18, 64, 18 }))
+                                .useAllAvailableWidth()
+                                .setMarginBottom(8);
 
                 // Left: logo
-                Cell logo = noBorderCell().setVerticalAlignment(VerticalAlignment.MIDDLE);
-                try {
-                        java.io.File logoFile = new java.io.File("MediCare logo.png");
-                        if (logoFile.exists()) {
-                                com.itextpdf.layout.element.Image img = new com.itextpdf.layout.element.Image(
-                                                ImageDataFactory.create("MediCare logo.png"));
-                                img.setWidth(90); // Scale down
-                                img.setHeight(90);
-                                logo.add(img);
-                        } else {
-                                logo.add(buildLogoPlaceholder());
-                        }
-                } catch (Exception e) {
-                        logo.add(buildLogoPlaceholder());
-                }
-                t.addCell(logo);
+                Cell logoCell = new Cell().setBorder(Border.NO_BORDER)
+                                .setVerticalAlignment(VerticalAlignment.MIDDLE);
+                logoCell.add(loadLogoImage(70, 70));
+                t.addCell(logoCell);
 
-                // Centre: AIIMS-like name + title
-                Cell centre = noBorderCell();
-                centre.add(new Paragraph(HOSPITAL_NAME)
-                                .setFont(FB).setFontSize(16f).setFontColor(C_BLACK)
-                                .setTextAlignment(TextAlignment.CENTER).setMarginBottom(0).setMargin(0));
-                centre.add(new Paragraph(HOSPITAL_ADDR)
-                                .setFont(FR).setFontSize(9f).setFontColor(C_MUTED)
-                                .setTextAlignment(TextAlignment.CENTER).setMarginBottom(0).setMargin(0));
-                centre.add(new Paragraph(title)
-                                .setFont(FB).setFontSize(14f).setFontColor(C_BLACK)
-                                .setTextAlignment(TextAlignment.CENTER).setMarginBottom(2).setMargin(0));
-                centre.add(new Paragraph("SMOKING PROHIBITED IN HOSPITAL PREMISES")
+                // Centre: hospital name + tagline + contact line
+                Cell centreCell = new Cell().setBorder(Border.NO_BORDER)
+                                .setVerticalAlignment(VerticalAlignment.MIDDLE)
+                                .setTextAlignment(TextAlignment.CENTER);
+
+                centreCell.add(new Paragraph(HOSPITAL_NAME)
+                                .setFont(FB).setFontSize(20f).setFontColor(C_TEAL)
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0).setMarginBottom(3));
+
+                centreCell.add(new Paragraph(HOSPITAL_TAGLINE)
+                                .setFont(FI).setFontSize(8.5f).setFontColor(C_SLATE)
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0).setMarginBottom(6));
+
+                // Single compact contact line
+                centreCell.add(new Paragraph("Helpline: " + SUPPORT_PHONE + "   |   " + WEBSITE)
                                 .setFont(FR).setFontSize(7.5f).setFontColor(C_MUTED)
-                                .setTextAlignment(TextAlignment.CENTER).setMarginBottom(4).setMargin(0));
-                centre.add(new Paragraph("e-OPD Card")
-                                .setFont(FR).setFontSize(12f).setFontColor(C_BLACK)
-                                .setTextAlignment(TextAlignment.CENTER).setMarginBottom(0).setMargin(0));
-                t.addCell(centre);
-
-                // Right: payment badge
-                Cell right = noBorderCell().setVerticalAlignment(VerticalAlignment.MIDDLE);
-                right.add(buildPaymentBadge(appt));
-                t.addCell(right);
-
-                return t;
-        }
-
-        /** Simple circular logo placeholder with "+" symbol */
-        private Div buildLogoPlaceholder() {
-                Div d = new Div()
-                                .setWidth(58).setHeight(58)
-                                .setBackgroundColor(C_HEADER_BG)
-                                .setBorder(new SolidBorder(C_NAVY, 2f))
-                                .setBorderRadius(new BorderRadius(29))
-                                .setHorizontalAlignment(HorizontalAlignment.CENTER);
-                d.add(new Paragraph("+")
-                                .setFont(FB).setFontSize(26f).setFontColor(C_NAVY)
-                                .setTextAlignment(TextAlignment.CENTER)
-                                .setMarginTop(8).setMargin(0));
-                return d;
-        }
-
-        /** Payment status badge styled like a stamp */
-        private Div buildPaymentBadge(Appointment appt) {
-                String payStatus = normalize(appt.getPaymentStatus()).toUpperCase();
-                String feeStr = "\u20B9 " + appt.getDoctor().getConsultationFee();
-
-                DeviceRgb[] colors = switch (payStatus) {
-                        case "PAID", "COMPLETED", "SUCCESS" -> new DeviceRgb[] { C_GREEN_BG, C_GREEN_FG };
-                        case "PENDING" -> new DeviceRgb[] { C_AMBER_BG, C_AMBER_FG };
-                        case "FAILED", "CANCELLED" -> new DeviceRgb[] { C_RED_BG, C_RED_FG };
-                        default -> new DeviceRgb[] { C_LABEL_BG, C_BLUE };
-                };
-
-                Div d = new Div()
-                                .setBackgroundColor(colors[0])
-                                .setBorder(new SolidBorder(colors[1], 2f))
-                                .setBorderRadius(new BorderRadius(5))
-                                .setPaddingTop(6).setPaddingBottom(6)
-                                .setPaddingLeft(8).setPaddingRight(8)
-                                .setHorizontalAlignment(HorizontalAlignment.RIGHT);
-                d.add(new Paragraph(payStatus.replace("_", " "))
-                                .setFont(FB).setFontSize(9f).setFontColor(colors[1])
-                                .setTextAlignment(TextAlignment.CENTER).setMarginBottom(2).setMargin(0));
-                d.add(new Paragraph("( " + feeStr + " )")
-                                .setFont(FB).setFontSize(10f).setFontColor(colors[1])
                                 .setTextAlignment(TextAlignment.CENTER).setMargin(0));
-                return d;
-        }
 
-        // ═════════════════════════════════════════════════════════════════════
-        // SECTION 3 – CLINIC / DOCTOR LINE
-        // ═════════════════════════════════════════════════════════════════════
+                t.addCell(centreCell);
 
-        private Table clinicDoctorLine(Appointment appt) {
-                Table t = new Table(UnitValue.createPercentArray(new float[] { 50, 50 }))
-                                .useAllAvailableWidth().setMarginTop(25).setMarginBottom(15);
+                // Right: "OPD SLIP" label
+                Cell rightCell = new Cell().setBorder(Border.NO_BORDER)
+                                .setVerticalAlignment(VerticalAlignment.MIDDLE)
+                                .setTextAlignment(TextAlignment.RIGHT);
 
-                Cell left = noBorderCell();
-                left.add(new Paragraph()
-                                .add(new Text("Clinic : ").setFont(FB).setFontSize(10f).setFontColor(C_BLACK))
-                                .add(new Text(safe(appt.getDoctor().getSpecialization()))
-                                                .setFont(FB).setFontSize(10f).setFontColor(C_BLACK))
-                                .setMarginBottom(2).setMargin(0));
-                left.add(new Paragraph()
-                                .add(new Text("Dept. : ").setFont(FB).setFontSize(10f).setFontColor(C_BLACK))
-                                .add(new Text(safe(appt.getDoctor().getSpecialization()))
-                                                .setFont(FB).setFontSize(10f).setFontColor(C_BLACK))
-                                .setMargin(0));
-                t.addCell(left);
+                Div label = new Div()
+                                .setBackgroundColor(C_TEAL_LIGHT)
+                                .setBorder(new SolidBorder(C_TEAL_MID, 1f))
+                                .setBorderRadius(new BorderRadius(6))
+                                .setPadding(8)
+                                .setTextAlignment(TextAlignment.CENTER);
+                label.add(new Paragraph("OPD").setFont(FB).setFontSize(10f).setFontColor(C_TEAL)
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0).setMarginBottom(1));
+                label.add(new Paragraph("APPOINTMENT").setFont(FR).setFontSize(6.5f).setFontColor(C_TEAL)
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0).setMarginBottom(1));
+                label.add(new Paragraph("SLIP").setFont(FB).setFontSize(10f).setFontColor(C_TEAL)
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0));
+                rightCell.add(label);
 
-                Cell right = noBorderCell();
-                right.add(new Paragraph("Embedded\nImage")
-                                .setFont(FR).setFontSize(10f).setFontColor(C_MUTED)
-                                .setTextAlignment(TextAlignment.RIGHT).setMargin(0));
-                t.addCell(right);
-
+                t.addCell(rightCell);
                 return t;
         }
 
-        // ═════════════════════════════════════════════════════════════════════
-        // SECTION 4 – PATIENT INFO TABLE
-        // ═════════════════════════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SECTION 2 – RIBBON (ID + UHID + date + inline payment pill)
+        // ═══════════════════════════════════════════════════════════════════════════
 
-        private Table patientTable(Appointment appt) {
-                String patientName = safe(appt.getPatient().getUser().getName());
-                String patientEmail = safe(appt.getPatient().getUser().getEmail());
-                String patientPhone = safe(appt.getPatient().getUser().getPhone());
+        private Div buildApptRibbon(Appointment appt) {
+                String apptId = String.format("APT-%08d", appt.getId());
+                String uhid = String.format("UHID-%06d", appt.getPatient().getId());
+                String generated = LocalDateTime.now()
+                                .format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));
 
-                Table t = new Table(UnitValue.createPercentArray(new float[] { 15, 35, 15, 35 }))
-                                .useAllAvailableWidth()
-                                .setBorder(new SolidBorder(C_BORDER, 0.5f))
-                                .setMarginBottom(0);
+                Div ribbon = new Div()
+                                .setBackgroundColor(C_NAVY)
+                                .setBorderRadius(new BorderRadius(8))
+                                .setPaddingLeft(16).setPaddingRight(16)
+                                .setPaddingTop(10).setPaddingBottom(10)
+                                .setMarginBottom(10);
 
-                // ── Row 1: Name + Relation ─
-                t.addCell(labelCell("Name of\nPatient :"));
-                t.addCell(valueCell(patientName, true));
-                t.addCell(labelCell("S/D/W/H/F/C\nof:"));
-                t.addCell(valueCell("—", true));
+                // 4 columns: appt ID | UHID | generated | payment pill
+                Table t = new Table(UnitValue.createPercentArray(new float[] { 28, 24, 26, 22 }))
+                                .useAllAvailableWidth();
 
-                // ── Row 2: Gender + Age ─
-                t.addCell(labelCell("Gender:"));
-                t.addCell(valueCell("—", true)); // Not in entity
-                t.addCell(labelCell("Age:"));
-                t.addCell(valueCell("—", true)); // Not in entity
+                t.addCell(ribbonCell("APPOINTMENT ID", apptId, TextAlignment.LEFT));
+                t.addCell(ribbonCell("PATIENT UHID", uhid, TextAlignment.LEFT));
+                t.addCell(ribbonCell("GENERATED ON", generated, TextAlignment.LEFT));
 
-                // ── Row 3: Contact + Address ─────────────────────────────────────
-                t.addCell(labelCell("Contact\nDetails :"));
-                Cell contactVal = new Cell()
-                                .setBorder(Border.NO_BORDER)
-                                .setBorderRight(new SolidBorder(C_BORDER, 0.5f))
-                                .setBorderBottom(new SolidBorder(C_BORDER, 0.5f))
-                                .setPaddingTop(5).setPaddingBottom(5).setPaddingLeft(5);
-                contactVal.add(new Paragraph("Mobile: " + patientPhone)
-                                .setFont(FR).setFontSize(9f).setFontColor(C_BLACK).setMarginBottom(2).setMargin(0));
-                contactVal.add(new Paragraph("Email-ID")
-                                .setFont(FR).setFontSize(9f).setFontColor(C_BLACK).setMarginBottom(1).setMargin(0));
-                contactVal.add(new Paragraph(patientEmail)
-                                .setFont(FR).setFontSize(8.5f).setFontColor(C_BLUE).setUnderline().setMargin(0));
-                t.addCell(contactVal);
+                // Payment pill cell
+                Cell pillCell = new Cell().setBorder(Border.NO_BORDER)
+                                .setVerticalAlignment(VerticalAlignment.MIDDLE)
+                                .setTextAlignment(TextAlignment.RIGHT);
+                pillCell.add(buildPaymentPill(appt));
+                t.addCell(pillCell);
 
-                t.addCell(labelCell("Address :"));
-                t.addCell(valueCell("—", false)); // Address not in entity
-
-                return t;
+                ribbon.add(t);
+                return ribbon;
         }
 
-        // ═════════════════════════════════════════════════════════════════════
-        // SECTION 5 – SCHEDULE TABLE
-        // ═════════════════════════════════════════════════════════════════════
+        /** A small inline pill — replaces the heavy payment card. */
+        private Div buildPaymentPill(Appointment appt) {
+                String rawStatus = appt.getPaymentStatus() != null ? appt.getPaymentStatus().name() : "PENDING";
+                String label = rawStatus.replace("_", " ");
+                String fee = "Rs. " + String.format("%.0f", appt.getDoctor().getConsultationFee());
 
-        private Table scheduleTable(Appointment appt) {
-                String docName = "Dr. " + safe(appt.getDoctor().getUser().getName());
-                String timeSlot = appt.getStartTime().format(DateTimeFormatter.ofPattern("hh:mm a")).toUpperCase()
-                                + "-"
-                                + appt.getEndTime().format(DateTimeFormatter.ofPattern("hh:mm a")).toUpperCase();
+                DeviceRgb bg, fg, border;
+                switch (rawStatus.toUpperCase()) {
+                        case "PAID" -> {
+                                bg = C_GREEN_BG;
+                                fg = C_GREEN_FG;
+                                border = C_GREEN_BORD;
+                        }
+                        case "FAILED", "CANCELLED" -> {
+                                bg = C_RED_BG;
+                                fg = C_RED_FG;
+                                border = C_RED_BORD;
+                        }
+                        default -> {
+                                bg = C_AMBER_BG;
+                                fg = C_AMBER_FG;
+                                border = C_AMBER_BORD;
+                        }
+                }
 
-                Table t = new Table(UnitValue.createPercentArray(new float[] { 100 }))
-                                .useAllAvailableWidth()
-                                .setBorder(new SolidBorder(C_BORDER, 0.5f))
-                                .setBorderTop(Border.NO_BORDER)
-                                .setMarginTop(0).setMarginBottom(8);
+                Div pill = new Div()
+                                .setBackgroundColor(bg)
+                                .setBorder(new SolidBorder(border, 1f))
+                                .setBorderRadius(new BorderRadius(20))
+                                .setPaddingLeft(10).setPaddingRight(10)
+                                .setPaddingTop(6).setPaddingBottom(6)
+                                .setHorizontalAlignment(HorizontalAlignment.RIGHT)
+                                .setTextAlignment(TextAlignment.CENTER);
 
-                Cell wrapper = new Cell().setBorder(Border.NO_BORDER).setPadding(0);
-                Table inner = new Table(UnitValue.createPercentArray(new float[] { 15, 85 })).useAllAvailableWidth();
+                pill.add(new Paragraph(label)
+                                .setFont(FB).setFontSize(8f).setFontColor(fg)
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0).setMarginBottom(2));
+                pill.add(new Paragraph(fee)
+                                .setFont(FB).setFontSize(11f).setFontColor(fg)
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0));
 
-                addScheduleRow(inner, "Reporting Time", timeSlot, false);
-                addScheduleRow(inner, "Doctor's Name", docName, false);
-                addScheduleRow(inner, "Room No.", "Room No :Main Building", false);
-                addScheduleRow(inner, "Queue No.", "15", true); // Fake queue no
-
-                wrapper.add(inner);
-                t.addCell(wrapper);
-
-                return t;
+                return pill;
         }
 
-        private void addScheduleRow(Table t, String label, String value, boolean last) {
-                Cell lc = new Cell()
-                                .setBorder(Border.NO_BORDER)
-                                .setPaddingTop(3).setPaddingBottom(3)
-                                .setPaddingLeft(5).setPaddingRight(5);
-                lc.add(new Paragraph(label)
-                                .setFont(FR).setFontSize(9f).setFontColor(C_MUTED).setMargin(0));
-                t.addCell(lc);
-
-                Cell vc = new Cell()
-                                .setBorder(Border.NO_BORDER)
-                                .setPaddingTop(3).setPaddingBottom(3)
-                                .setPaddingLeft(5).setPaddingRight(5);
-                vc.add(new Paragraph(": " + value)
-                                .setFont(FB).setFontSize(9f).setFontColor(C_BLACK).setMargin(0));
-                t.addCell(vc);
-        }
-
-        // ═════════════════════════════════════════════════════════════════════
-        // FOOTER
-        // ═════════════════════════════════════════════════════════════════════
-
-        private Table footerRow(Appointment appt) {
-                Table t = new Table(UnitValue.createPercentArray(new float[] { 50, 50 }))
-                                .useAllAvailableWidth().setMarginTop(5);
-
-                Cell left = noBorderCell();
-                left.add(new Paragraph(SUPPORT_PHONE)
-                                .setFont(FR).setFontSize(8f).setFontColor(C_MUTED).setMarginBottom(2).setMargin(0));
-                left.add(new Paragraph("This is a computer-generated document. No signature required.")
-                                .setFont(FO).setFontSize(7.5f).setFontColor(C_MUTED).setMargin(0));
-                t.addCell(left);
-
-                Cell right = noBorderCell();
-                right.add(new Paragraph(
-                                "Generated: " + LocalDateTime.now()
-                                                .format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a")))
-                                .setFont(FR).setFontSize(8f).setFontColor(C_MUTED)
-                                .setTextAlignment(TextAlignment.RIGHT).setMarginBottom(2).setMargin(0));
-                right.add(new Paragraph("For queries: cancellations must be made 24 hrs in advance.")
-                                .setFont(FR).setFontSize(7.5f).setFontColor(C_MUTED)
-                                .setTextAlignment(TextAlignment.RIGHT).setMargin(0));
-                t.addCell(right);
-
-                return t;
-        }
-
-        // ═════════════════════════════════════════════════════════════════════
-        // SHARED CELL BUILDERS
-        // ═════════════════════════════════════════════════════════════════════
-
-        private Cell labelCell(String text) {
-                Cell c = new Cell()
-                                .setBorder(Border.NO_BORDER)
-                                .setBorderRight(new SolidBorder(C_BORDER, 0.5f))
-                                .setBorderBottom(new SolidBorder(C_BORDER, 0.5f))
-                                .setPaddingTop(5).setPaddingBottom(5)
-                                .setPaddingLeft(5).setPaddingRight(5);
-                c.add(new Paragraph(text)
-                                .setFont(FR).setFontSize(9f).setFontColor(C_MUTED).setMargin(0));
+        private Cell ribbonCell(String label, String value, TextAlignment align) {
+                Cell c = new Cell().setBorder(Border.NO_BORDER).setPaddingRight(10);
+                c.add(new Paragraph(label)
+                                .setFont(FR).setFontSize(6.5f).setFontColor(C_MUTED)
+                                .setTextAlignment(align).setMargin(0).setMarginBottom(3));
+                c.add(new Paragraph(value)
+                                .setFont(FB).setFontSize(9.5f).setFontColor(C_WHITE)
+                                .setTextAlignment(align).setMargin(0));
                 return c;
         }
 
-        private Cell valueCell(String text, boolean bold) {
-                Cell c = new Cell()
-                                .setBorder(Border.NO_BORDER)
-                                .setBorderRight(new SolidBorder(C_BORDER, 0.5f))
-                                .setBorderBottom(new SolidBorder(C_BORDER, 0.5f))
-                                .setPaddingTop(5).setPaddingBottom(5)
-                                .setPaddingLeft(5).setPaddingRight(5);
-                c.add(new Paragraph(text)
-                                .setFont(bold ? FB : FR).setFontSize(10f).setFontColor(C_BLACK).setMargin(0));
-                return c;
-        }
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SECTION 3 – PATIENT + DOCTOR INFO CARDS
+        // ═══════════════════════════════════════════════════════════════════════════
 
-        private Cell noBorderCell() {
-                return new Cell().setBorder(Border.NO_BORDER);
-        }
-
-        // ═════════════════════════════════════════════════════════════════════
-        // CANVAS HELPERS
-        // ═════════════════════════════════════════════════════════════════════
-
-        private void drawPageBorder(PdfPage pg) throws Exception {
-                PdfCanvas pc = new PdfCanvas(pg);
-                pc.setStrokeColor(C_NAVY).setLineWidth(1.5f)
-                                .rectangle(MX - 8, MY - 8, PW - (MX - 8) * 2, PH - (MY - 8) * 2)
-                                .stroke();
-                // thin inner line
-                pc.setStrokeColor(C_DIVIDER).setLineWidth(0.4f)
-                                .rectangle(MX - 4, MY - 4, PW - (MX - 4) * 2, PH - (MY - 4) * 2)
-                                .stroke();
-                pc.release();
-        }
-
-        private Table rule(DeviceRgb color, float width) {
-                Table t = new Table(UnitValue.createPercentArray(new float[] { 100 }))
-                                .useAllAvailableWidth().setMarginTop(3).setMarginBottom(3);
-                t.addCell(new Cell()
-                                .setBorder(Border.NO_BORDER)
-                                .setBorderBottom(new SolidBorder(color, width))
-                                .setPadding(0));
+        private Table buildInfoCards(Appointment appt) {
+                Table t = new Table(UnitValue.createPercentArray(new float[] { 50, 50 }))
+                                .useAllAvailableWidth().setMarginBottom(10);
+                t.addCell(buildPatientCard(appt));
+                t.addCell(buildDoctorCard(appt));
                 return t;
         }
 
-        // ═════════════════════════════════════════════════════════════════════
-        // UTILITY
-        // ═════════════════════════════════════════════════════════════════════
+        private Cell buildPatientCard(Appointment appt) {
+                Cell outer = new Cell()
+                                .setBorder(new SolidBorder(C_BORDER, 1f))
+                                .setBorderRadius(new BorderRadius(6))
+                                .setBackgroundColor(C_CARD_BG)
+                                .setPadding(12).setPaddingRight(10);
 
-        private DeviceRgb[] statusColors(String status) {
-                if (status == null)
-                        return new DeviceRgb[] { C_LABEL_BG, C_BLUE };
-                return switch (status.toUpperCase()) {
-                        case "CONFIRMED" -> new DeviceRgb[] { C_GREEN_BG, C_GREEN_FG };
-                        case "SCHEDULED" -> new DeviceRgb[] { C_LABEL_BG, C_BLUE };
+                addCardTitle(outer, "PATIENT INFORMATION", C_TEAL);
+                outer.add(new LineSeparator(new SolidLine(0.4f)).setStrokeColor(C_BORDER).setMarginBottom(8));
+
+                addInfoRow(outer, "Full Name", safe(appt.getPatient().getUser().getName()), true);
+                addInfoRow(outer, "Phone", safe(appt.getPatient().getUser().getPhone()), false);
+                addInfoRow(outer, "Email", safe(appt.getPatient().getUser().getEmail()), false);
+
+                if (appt.getPatient().getGender() != null)
+                        addInfoRow(outer, "Gender", safe(appt.getPatient().getGender()), false);
+                if (appt.getPatient().getBloodGroup() != null)
+                        addInfoRow(outer, "Blood Group", safe(appt.getPatient().getBloodGroup()), false);
+
+                addInfoRow(outer, "Visit Type",
+                                Boolean.TRUE.equals(appt.getIsFirstVisit()) ? "First Visit" : "Follow-Up", false);
+
+                return outer;
+        }
+
+        private Cell buildDoctorCard(Appointment appt) {
+                Cell outer = new Cell()
+                                .setBorder(new SolidBorder(C_BORDER, 1f))
+                                .setBorderRadius(new BorderRadius(6))
+                                .setBackgroundColor(C_CARD_BG)
+                                .setPadding(12).setPaddingLeft(10);
+
+                addCardTitle(outer, "CONSULTING DOCTOR", C_NAVY_MID);
+                outer.add(new LineSeparator(new SolidLine(0.4f)).setStrokeColor(C_BORDER).setMarginBottom(8));
+
+                addInfoRowColored(outer, "Name",
+                                "Dr. " + safe(appt.getDoctor().getUser().getName()), C_NAVY, true);
+                addInfoRow(outer, "Specialization", safe(appt.getDoctor().getSpecialization()), false);
+                addInfoRow(outer, "Qualification", safe(appt.getDoctor().getQualification()), false);
+                addInfoRow(outer, "Hospital", safe(appt.getDoctor().getHospital()), false);
+                addInfoRow(outer, "Contact", safe(appt.getDoctor().getUser().getPhone()), false);
+                addInfoRow(outer, "Consult Fee",
+                                "Rs. " + String.format("%.0f", appt.getDoctor().getConsultationFee()), false);
+
+                return outer;
+        }
+
+        private void addCardTitle(Cell parent, String text, DeviceRgb color) {
+                parent.add(new Paragraph(text)
+                                .setFont(FB).setFontSize(7.5f).setFontColor(color)
+                                .setMargin(0).setMarginBottom(6)
+                                .setCharacterSpacing(0.4f));
+        }
+
+        private void addInfoRow(Cell parent, String label, String value, boolean boldValue) {
+                Table row = new Table(UnitValue.createPercentArray(new float[] { 36, 64 }))
+                                .useAllAvailableWidth().setMarginBottom(4);
+                row.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(0)
+                                .add(new Paragraph(label)
+                                                .setFont(FR).setFontSize(7.5f).setFontColor(C_MUTED).setMargin(0)));
+                row.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(0)
+                                .add(new Paragraph(value)
+                                                .setFont(boldValue ? FB : FR).setFontSize(8.5f).setFontColor(C_DARK)
+                                                .setMargin(0)));
+                parent.add(row);
+        }
+
+        private void addInfoRowColored(Cell parent, String label, String value, DeviceRgb color, boolean bold) {
+                Table row = new Table(UnitValue.createPercentArray(new float[] { 36, 64 }))
+                                .useAllAvailableWidth().setMarginBottom(4);
+                row.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(0)
+                                .add(new Paragraph(label)
+                                                .setFont(FR).setFontSize(7.5f).setFontColor(C_MUTED).setMargin(0)));
+                row.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(0)
+                                .add(new Paragraph(value)
+                                                .setFont(bold ? FB : FR).setFontSize(8.5f).setFontColor(color)
+                                                .setMargin(0)));
+                parent.add(row);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SECTION 4 – SCHEDULE CARD (compact, light — no heavy navy slab)
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        private Div buildScheduleCard(Appointment appt) {
+                DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("EEEE, dd MMMM yyyy");
+                DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("hh:mm a");
+
+                String date = appt.getAppointmentDate().format(dateFmt);
+                String start = appt.getStartTime().format(timeFmt).toUpperCase();
+                String end = appt.getEndTime().format(timeFmt).toUpperCase();
+
+                String statusLabel = appt.getStatus() != null ? appt.getStatus().name() : "SCHEDULED";
+                DeviceRgb[] sc = resolveStatusColors(statusLabel);
+
+                String duration = appt.getDoctor().getSlotDuration() != null
+                                ? appt.getDoctor().getSlotDuration() + " min"
+                                : "30 min";
+
+                Div card = new Div()
+                                .setBackgroundColor(C_TEAL_LIGHT)
+                                .setBorder(new SolidBorder(C_TEAL_MID, 1f))
+                                .setBorderRadius(new BorderRadius(8))
+                                .setPaddingLeft(16).setPaddingRight(16)
+                                .setPaddingTop(12).setPaddingBottom(12)
+                                .setMarginBottom(10);
+
+                // Row label
+                card.add(new Paragraph("APPOINTMENT SCHEDULE")
+                                .setFont(FB).setFontSize(7.5f).setFontColor(C_TEAL)
+                                .setCharacterSpacing(0.4f).setMargin(0).setMarginBottom(10));
+
+                // 4-column schedule row
+                Table t = new Table(UnitValue.createPercentArray(new float[] { 36, 28, 20, 16 }))
+                                .useAllAvailableWidth();
+
+                // Date column — prominent
+                Cell dateCol = new Cell().setBorder(Border.NO_BORDER).setPaddingRight(14);
+                dateCol.add(new Paragraph("DATE").setFont(FR).setFontSize(7f).setFontColor(C_SLATE)
+                                .setMargin(0).setMarginBottom(3));
+                dateCol.add(new Paragraph(date).setFont(FB).setFontSize(10f).setFontColor(C_DARK)
+                                .setMargin(0).setFixedLeading(13f));
+                t.addCell(dateCol);
+
+                // Time slot
+                t.addCell(scheduleCell("TIME SLOT", start + " – " + end, C_DARK));
+
+                // Status pill embedded in cell
+                Cell statusCol = new Cell().setBorder(Border.NO_BORDER).setPaddingRight(8)
+                                .setVerticalAlignment(VerticalAlignment.TOP);
+                statusCol.add(new Paragraph("STATUS").setFont(FR).setFontSize(7f).setFontColor(C_SLATE)
+                                .setMargin(0).setMarginBottom(4));
+
+                Div pill = new Div()
+                                .setBackgroundColor(sc[0])
+                                .setBorder(new SolidBorder(sc[1], 1f))
+                                .setBorderRadius(new BorderRadius(12))
+                                .setPaddingLeft(8).setPaddingRight(8)
+                                .setPaddingTop(3).setPaddingBottom(3);
+                pill.add(new Paragraph(statusLabel.replace("_", " "))
+                                .setFont(FB).setFontSize(8f).setFontColor(sc[1])
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0));
+                statusCol.add(pill);
+                t.addCell(statusCol);
+
+                // Duration
+                t.addCell(scheduleCell("DURATION", duration, C_SLATE));
+
+                card.add(t);
+                return card;
+        }
+
+        private Cell scheduleCell(String label, String value, DeviceRgb valColor) {
+                Cell c = new Cell().setBorder(Border.NO_BORDER).setPaddingRight(12);
+                c.add(new Paragraph(label).setFont(FR).setFontSize(7f).setFontColor(C_SLATE)
+                                .setMargin(0).setMarginBottom(3));
+                c.add(new Paragraph(value).setFont(FB).setFontSize(10f).setFontColor(valColor)
+                                .setMargin(0).setFixedLeading(13f));
+                return c;
+        }
+
+        private DeviceRgb[] resolveStatusColors(String status) {
+                return switch (status) {
                         case "COMPLETED" -> new DeviceRgb[] { C_GREEN_BG, C_GREEN_FG };
-                        case "PENDING" -> new DeviceRgb[] { C_AMBER_BG, C_AMBER_FG };
                         case "CANCELLED" -> new DeviceRgb[] { C_RED_BG, C_RED_FG };
-                        case "RESCHEDULED" ->
-                                new DeviceRgb[] { new DeviceRgb(238, 228, 255), new DeviceRgb(110, 50, 190) };
-                        default -> new DeviceRgb[] { C_LABEL_BG, C_BLUE };
+                        case "NO_SHOW" -> new DeviceRgb[] { C_AMBER_BG, C_AMBER_FG };
+                        case "RESCHEDULED" -> new DeviceRgb[] { C_BLUE_BG, C_BLUE_FG };
+                        default -> new DeviceRgb[] { C_TEAL_LIGHT, C_TEAL };
                 };
         }
 
-        private String normalize(Object o) {
-                return o == null ? "—" : o.toString();
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SECTION 5 – REASON + STATUS
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        private Table buildReasonStatusRow(Appointment appt) {
+                Table t = new Table(UnitValue.createPercentArray(new float[] { 62, 38 }))
+                                .useAllAvailableWidth().setMarginBottom(10);
+
+                // Reason cell
+                Cell reasonCell = new Cell()
+                                .setBorder(new SolidBorder(C_BORDER, 1f))
+                                .setBorderRadius(new BorderRadius(6))
+                                .setBackgroundColor(C_CARD_BG)
+                                .setPadding(12).setPaddingRight(10);
+
+                reasonCell.add(new Paragraph("REASON FOR VISIT")
+                                .setFont(FB).setFontSize(7.5f).setFontColor(C_SLATE)
+                                .setCharacterSpacing(0.4f).setMargin(0).setMarginBottom(6));
+
+                String reason = (appt.getReason() != null && !appt.getReason().isBlank())
+                                ? appt.getReason()
+                                : "Not specified";
+                reasonCell.add(new Paragraph(reason)
+                                .setFont(FR).setFontSize(9.5f).setFontColor(C_DARK)
+                                .setFixedLeading(14f).setMargin(0));
+
+                if (appt.getDoctorNotes() != null && !appt.getDoctorNotes().isBlank()) {
+                        reasonCell.add(new Paragraph("DOCTOR'S NOTES")
+                                        .setFont(FB).setFontSize(7.5f).setFontColor(C_SLATE)
+                                        .setCharacterSpacing(0.4f).setMargin(0).setMarginTop(10).setMarginBottom(4));
+                        reasonCell.add(new Paragraph(appt.getDoctorNotes())
+                                        .setFont(FI).setFontSize(9f).setFontColor(C_SLATE)
+                                        .setFixedLeading(13f).setMargin(0));
+                }
+                t.addCell(reasonCell);
+
+                // Appointment status cell — clean, no heavy bg
+                String apptStatus = appt.getStatus() != null ? appt.getStatus().name() : "SCHEDULED";
+                DeviceRgb[] sc = resolveStatusColors(apptStatus);
+
+                Cell statusCell = new Cell()
+                                .setBorder(new SolidBorder(sc[1], 1f))
+                                .setBorderRadius(new BorderRadius(6))
+                                .setBackgroundColor(sc[0])
+                                .setPadding(14)
+                                .setPaddingLeft(10)
+                                .setVerticalAlignment(VerticalAlignment.MIDDLE)
+                                .setTextAlignment(TextAlignment.CENTER);
+
+                statusCell.add(new Paragraph("APPOINTMENT STATUS")
+                                .setFont(FR).setFontSize(7f).setFontColor(sc[1])
+                                .setCharacterSpacing(0.4f)
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0).setMarginBottom(8));
+
+                statusCell.add(new Paragraph(apptStatus.replace("_", " "))
+                                .setFont(FB).setFontSize(15f).setFontColor(sc[1])
+                                .setTextAlignment(TextAlignment.CENTER).setMargin(0));
+
+                if (appt.getRescheduleCount() != null && appt.getRescheduleCount() > 0) {
+                        statusCell.add(new Paragraph("Rescheduled " + appt.getRescheduleCount() + "\u00d7")
+                                        .setFont(FR).setFontSize(7.5f).setFontColor(sc[1])
+                                        .setTextAlignment(TextAlignment.CENTER).setMarginTop(6).setMargin(0));
+                }
+                t.addCell(statusCell);
+
+                return t;
         }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SECTION 6 – NOTICE BOX
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        private Div buildNoticeBox() {
+                Div d = new Div()
+                                .setBackgroundColor(C_AMBER_BG)
+                                .setBorder(new SolidBorder(C_AMBER_BORD, 1f))
+                                .setBorderRadius(new BorderRadius(6))
+                                .setPadding(11).setPaddingLeft(14)
+                                .setMarginBottom(10);
+
+                d.add(new Paragraph("IMPORTANT INSTRUCTIONS")
+                                .setFont(FB).setFontSize(7.5f).setFontColor(C_AMBER_FG)
+                                .setCharacterSpacing(0.4f).setMargin(0).setMarginBottom(7));
+
+                String[] notices = {
+                                "Please arrive 15 minutes before your scheduled appointment time.",
+                                "Carry all previous medical records, test reports and prescriptions.",
+                                "Cancellations must be made at least 2 hours prior to the appointment.",
+                                "Smoking and tobacco products are strictly prohibited on hospital premises.",
+                                "This is a computer-generated document. No signature required."
+                };
+
+                for (String n : notices) {
+                        d.add(new Paragraph("\u2013  " + n)
+                                        .setFont(FR).setFontSize(8f).setFontColor(C_AMBER_FG)
+                                        .setMargin(0).setMarginBottom(3).setMarginLeft(4));
+                }
+                return d;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // SECTION 7 – SIGNATURE AREA
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        private Table buildSignatureArea(Appointment appt) {
+                Table t = new Table(UnitValue.createPercentArray(new float[] { 42, 16, 42 }))
+                                .useAllAvailableWidth().setMarginTop(4);
+
+                // Patient
+                Cell patSig = new Cell().setBorder(Border.NO_BORDER);
+                patSig.add(new Paragraph("Patient / Guardian Signature")
+                                .setFont(FR).setFontSize(8f).setFontColor(C_SLATE).setMarginBottom(22).setMargin(0));
+                patSig.add(new LineSeparator(new SolidLine(0.5f)).setStrokeColor(C_BORDER));
+                patSig.add(new Paragraph(safe(appt.getPatient().getUser().getName()))
+                                .setFont(FB).setFontSize(8f).setFontColor(C_TEAL)
+                                .setTextAlignment(TextAlignment.CENTER).setMarginTop(3).setMargin(0));
+                t.addCell(patSig);
+
+                t.addCell(new Cell().setBorder(Border.NO_BORDER));
+
+                // Doctor
+                Cell docSig = new Cell().setBorder(Border.NO_BORDER);
+                docSig.add(new Paragraph("Doctor's Signature & Stamp")
+                                .setFont(FR).setFontSize(8f).setFontColor(C_SLATE).setMarginBottom(22).setMargin(0));
+                docSig.add(new LineSeparator(new SolidLine(0.5f)).setStrokeColor(C_BORDER));
+                docSig.add(new Paragraph("Dr. " + safe(appt.getDoctor().getUser().getName())
+                                + "   \u00b7   " + safe(appt.getDoctor().getSpecialization()))
+                                .setFont(FB).setFontSize(8f).setFontColor(C_NAVY_MID)
+                                .setTextAlignment(TextAlignment.CENTER).setMarginTop(3).setMargin(0));
+                t.addCell(docSig);
+
+                return t;
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // PAGE DECORATION – subtle outer border + slim footer
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        private void addPageDecoration(PdfDocument pdfDoc) {
+                pdfDoc.addEventHandler(PdfDocumentEvent.END_PAGE, event -> {
+                        PdfDocumentEvent docEvent = (PdfDocumentEvent) event;
+                        PdfPage page = docEvent.getPage();
+                        PdfCanvas canvas = new PdfCanvas(page);
+                        try {
+                                float w = PageSize.A4.getWidth();
+                                float h = PageSize.A4.getHeight();
+                                float m = 14f;
+
+                                // Single clean outer border in teal
+                                canvas.setStrokeColor(C_TEAL).setLineWidth(1.5f)
+                                                .rectangle(m, m, w - 2 * m, h - 2 * m).stroke();
+
+                                // Slim navy footer bar
+                                float footerH = 18f;
+                                canvas.setFillColor(C_NAVY)
+                                                .rectangle(m, m, w - 2 * m, footerH).fill();
+
+                                PdfFont fr = PdfFontFactory.createFont(StandardFonts.HELVETICA);
+
+                                // Footer left text
+                                canvas.setFillColor(C_MUTED).setFontAndSize(fr, 6.5f)
+                                                .beginText()
+                                                .moveText(m + 12, m + 6)
+                                                .showText(HOSPITAL_NAME + "   |   " + WEBSITE + "   |   Helpline: "
+                                                                + SUPPORT_PHONE)
+                                                .endText();
+
+                                // Footer right text
+                                canvas.setFillColor(C_MUTED).setFontAndSize(fr, 6.5f)
+                                                .beginText()
+                                                .moveText(w - m - 130, m + 6)
+                                                .showText("Computer-generated document. Not valid without appointment ID.")
+                                                .endText();
+
+                        } catch (Exception ex) {
+                                log.warn("Page decoration error: {}", ex.getMessage());
+                        } finally {
+                                canvas.release();
+                        }
+                });
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // LOGO LOADING
+        // ═══════════════════════════════════════════════════════════════════════════
+
+        private Image loadLogoImage(float w, float h) {
+                byte[] logoBytes = null;
+
+                try {
+                        ClassPathResource res = new ClassPathResource("static/MediCare_logo.png");
+                        try (InputStream is = res.getInputStream()) {
+                                logoBytes = is.readAllBytes();
+                        }
+                } catch (Exception ignored) {
+                }
+
+                if (logoBytes == null) {
+                        for (String path : new String[] {
+                                        "MediCare_logo.png", "MediCare logo.png",
+                                        "src/main/resources/static/MediCare_logo.png" }) {
+                                try {
+                                        java.io.File f = new java.io.File(path);
+                                        if (f.exists()) {
+                                                logoBytes = java.nio.file.Files.readAllBytes(f.toPath());
+                                                break;
+                                        }
+                                } catch (Exception ignored) {
+                                }
+                        }
+                }
+
+                if (logoBytes != null) {
+                        try {
+                                Image img = new Image(ImageDataFactory.create(logoBytes));
+                                img.setWidth(w).setHeight(h).setAutoScale(false);
+                                return img;
+                        } catch (Exception e) {
+                                log.warn("Logo image could not be decoded, using placeholder");
+                        }
+                }
+                return buildLogoFallback(w, h);
+        }
+
+        private Image buildLogoFallback(float w, float h) {
+                try {
+                        byte[] minPng = new byte[] {
+                                        (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+                                        0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+                                        0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+                                        0x08, 0x02, 0x00, 0x00, 0x00, (byte) 0x90, 0x77, 0x53, (byte) 0xDE,
+                                        0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41, 0x54,
+                                        0x08, (byte) 0xD7, 0x63, (byte) 0xF8, (byte) 0xCF, (byte) 0xC0, 0x00, 0x00,
+                                        0x00, 0x02, 0x00, 0x01, (byte) 0xE2, 0x21, (byte) 0xBC, 0x33,
+                                        0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, (byte) 0xAE, 0x42, 0x60,
+                                        (byte) 0x82
+                        };
+                        Image img = new Image(ImageDataFactory.create(minPng));
+                        img.setWidth(w).setHeight(h);
+                        return img;
+                } catch (Exception e) {
+                        throw new IllegalStateException("Cannot create logo fallback", e);
+                }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════════
+        // UTILITIES
+        // ═══════════════════════════════════════════════════════════════════════════
 
         private String safe(String s) {
-                return (s == null || s.isBlank()) ? "—" : s;
-        }
-
-        private boolean notBlank(String s) {
-                return s != null && !s.isBlank();
+                return (s == null || s.isBlank()) ? "\u2014" : s;
         }
 }

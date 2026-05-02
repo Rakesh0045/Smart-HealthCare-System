@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -130,6 +131,57 @@ public class PaymentService {
         } catch (Exception e) {
             throw new BadRequestException("Payment verification error: " + e.getMessage());
         }
+    }
+
+    @Transactional
+    public Map<String, String> choosePayAtAppointment(Long appointmentId, Long userId) {
+        Appointment appointment = appointmentRepo.findById(appointmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Appointment", appointmentId));
+        if (!appointment.getPatient().getUser().getId().equals(userId)) {
+            throw new BadRequestException("You can only update payment choice for your own appointments.");
+        }
+
+        Payment existingPayment = paymentRepo.findByAppointmentId(appointmentId).orElse(null);
+        if (appointment.getPaymentStatus() == PaymentStatus.PAID
+                || (existingPayment != null && existingPayment.getStatus() == PaymentStatus.PAID)) {
+            return Map.of("status", "ALREADY_PAID", "message", "Appointment already paid");
+        }
+
+        if (existingPayment != null && existingPayment.getRazorpayOrderId() == null
+                && existingPayment.getStatus() == PaymentStatus.PENDING) {
+            return Map.of("status", "ALREADY_SELECTED", "message", "Pay at appointment time already selected");
+        }
+
+        Payment payment = existingPayment != null ? existingPayment
+                : Payment.builder()
+                        .appointment(appointment)
+                        .build();
+        payment.setAmount(appointment.getDoctor().getConsultationFee());
+        payment.setCurrency("INR");
+        payment.setStatus(PaymentStatus.PENDING);
+        paymentRepo.save(payment);
+
+        byte[] slip = appointmentSlipPdfService.generateSlip(appointment,
+                "Appointment Slip", "Payment will be collected at the clinic.");
+        notificationService.sendPayAtAppointmentNotification(
+                appointment.getPatient().getUser(),
+                appointment.getDoctor().getUser(),
+                buildAppointmentDetails(appointment),
+                payment.getAmount(),
+                slip);
+
+        return Map.of("status", "PAY_AT_APPOINTMENT", "message", "Payment will be collected at appointment time");
+    }
+
+    private String buildAppointmentDetails(Appointment appointment) {
+        return String.format(
+                "Patient: %s | Doctor: Dr. %s (%s) | Date: %s | Time: %s - %s",
+                appointment.getPatient().getUser().getName(),
+                appointment.getDoctor().getUser().getName(),
+                appointment.getDoctor().getSpecialization(),
+                appointment.getAppointmentDate(),
+                appointment.getStartTime().format(DateTimeFormatter.ofPattern("hh:mm a")),
+                appointment.getEndTime().format(DateTimeFormatter.ofPattern("hh:mm a")));
     }
 
     private String hmacSHA256(String data, String secret) throws Exception {

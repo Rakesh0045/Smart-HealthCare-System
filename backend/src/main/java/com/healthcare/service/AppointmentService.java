@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -120,7 +121,8 @@ public class AppointmentService {
                 appointment.getPatient().getUser(),
                 appointment.getDoctor().getUser(),
                 buildAppointmentDetails(appointment, appointment.getDoctor(), appointment.getPatient()),
-                cancelledBy.getName());
+                cancelledBy.getName(),
+                appointment.getCancellationReason());
 
         auditLogService.log(userId, "APPOINTMENT_CANCELLED", "Appointment",
                 appointmentId, "Cancelled by " + cancelledBy.getName());
@@ -167,7 +169,7 @@ public class AppointmentService {
 
         byte[] slip = appointmentSlipPdfService.generateSlip(old,
                 "Rescheduled Appointment Slip", "Your appointment has been updated.");
-        notificationService.sendAppointmentConfirmation(
+        notificationService.sendAppointmentRescheduled(
                 old.getPatient().getUser(), old.getDoctor().getUser(),
                 buildAppointmentDetails(old, old.getDoctor(), old.getPatient()), slip, slip);
 
@@ -323,9 +325,25 @@ public class AppointmentService {
                 patient.getUser().getName(),
                 doctor.getUser().getName(),
                 doctor.getSpecialization(),
-                a.getAppointmentDate(),
+                formatDateWithOrdinal(a.getAppointmentDate()),
                 a.getStartTime().format(DateTimeFormatter.ofPattern("hh:mm a")),
                 a.getEndTime().format(DateTimeFormatter.ofPattern("hh:mm a")));
+    }
+
+    private String formatDateWithOrdinal(LocalDate date) {
+        int day = date.getDayOfMonth();
+        return day + ordinalSuffix(day) + " "
+                + date.format(DateTimeFormatter.ofPattern("MMMM yyyy", Locale.ENGLISH));
+    }
+
+    private String ordinalSuffix(int day) {
+        if (day >= 11 && day <= 13) return "th";
+        return switch (day % 10) {
+            case 1 -> "st";
+            case 2 -> "nd";
+            case 3 -> "rd";
+            default -> "th";
+        };
     }
 
     public AppointmentResponse mapToResponse(Appointment a) {

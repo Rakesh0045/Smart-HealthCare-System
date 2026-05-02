@@ -35,6 +35,15 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success(null, "Payment verified!"));
     }
 
+    @PostMapping("/pay-at-appointment/{appointmentId}")
+    @PreAuthorize("hasRole('PATIENT')")
+    public ResponseEntity<ApiResponse<Map<String, String>>> payAtAppointment(@PathVariable Long appointmentId,
+            @AuthenticationPrincipal UserDetails ud) {
+        return ResponseEntity.ok(ApiResponse.success(
+                paymentService.choosePayAtAppointment(appointmentId, uid(ud)),
+                "Pay at appointment time selected"));
+    }
+
     private Long uid(UserDetails ud) {
         return userRepo.findByEmail(ud.getUsername()).orElseThrow().getId();
     }
