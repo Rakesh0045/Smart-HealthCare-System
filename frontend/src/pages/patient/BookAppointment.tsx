@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { doctorApi, appointmentApi, paymentApi } from '../../api'
 import { LoadingSpinner } from '../../components/common'
@@ -35,6 +35,7 @@ export default function BookAppointment() {
   const [booked, setBooked] = useState<any>(null)
   const [rescheduleSource, setRescheduleSource] = useState<any>(null)
   const [bookingNotice, setBookingNotice] = useState<string | null>(null)
+  const autoPayTriggered = useRef(false)
 
   const today = new Date().toISOString().split('T')[0]
   const maxDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
@@ -177,6 +178,14 @@ export default function BookAppointment() {
       }
     })
   }, [])
+
+  useEffect(() => {
+    if (!isPayAppointmentMode) return
+    if (!booked || step !== 3 || autoPayTriggered.current) return
+
+    autoPayTriggered.current = true
+    void handlePayment()
+  }, [booked, step, isPayAppointmentMode])
 
   const handleSearch = async () => {
     setLoading(true)

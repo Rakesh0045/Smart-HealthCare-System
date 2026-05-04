@@ -650,9 +650,9 @@ public class NotificationService {
                                 .theme("amber")
                                 .icon(ICON_INFO)
                                 .badge("Payment At Clinic")
-                                .heading("Appointment Confirmed")
+                                .heading("Pay at appointment selected")
                                 .subheading("Hi " + firstName(patientName)
-                                                + ", your appointment is booked and payment will be collected at the clinic.")
+                                                + ", your appointment is booked. Payment will be collected at the clinic.")
                                 .rows(new String[][] {
                                                 { ICON_DOCTOR, "Doctor", docPart },
                                                 { ICON_DATE, "Date", details.date() },
@@ -691,7 +691,7 @@ public class NotificationService {
                                 "Patient will pay at appointment time. " + appointmentDetails,
                                 NotificationType.GENERAL, null);
 
-                sendEmail(patientEmail, patientName, "Appointment Confirmed - MediCare",
+                sendEmail(patientEmail, patientName, "Pay at Appointment Selected - MediCare",
                                 patientBody, appointmentSlipPdf, "appointment-slip.pdf");
                 sendEmail(doctorEmail, doctorName, "New Appointment- MediCare",
                                 doctorBody, appointmentSlipPdf, "appointment-slip.pdf");
@@ -704,7 +704,8 @@ public class NotificationService {
                 String name = patientUser.getName();
                 String phone = patientUser.getPhone();
 
-                AppointmentEmailDetails details = parseAppointmentDetails(appointmentDetails);
+                AppointmentEmailDetails parsed = parseAppointmentDetails(appointmentDetails);
+                AppointmentEmailDetails details = ensureAppointmentSchedule(parsed, appointmentDetails);
                 String datePart = joinDateTime(details.date(), details.time());
 
                 String subject = "Missed Appointment - Please Reschedule - MediCare";
@@ -723,7 +724,8 @@ public class NotificationService {
                                                 { ICON_INFO, "Status", "No-show recorded" },
                                 })
                                 .alertIcon(ICON_REFRESH)
-                                .alertText("Please log in to your patient portal to reschedule at your earliest convenience.")
+                                .alertText("Please log in to your patient portal to reschedule at your earliest convenience. "
+                                                + datePart)
                                 .footerNote("We understand things come up  we're here whenever you're ready to continue your care.")
                                 .build());
 
@@ -741,6 +743,51 @@ public class NotificationService {
                                         },
                                         "Login to MediCare to reschedule at your earliest convenience."));
                 }
+        }
+
+        private AppointmentEmailDetails ensureAppointmentSchedule(AppointmentEmailDetails details,
+                        String appointmentDetails) {
+                String doctor = details.doctor();
+                String date = details.date();
+                String time = details.time();
+
+                if ((date == null || date.isBlank()) || (time == null || time.isBlank())) {
+                        String[] parts = appointmentDetails != null ? appointmentDetails.split("\\|") : new String[0];
+                        for (String part : parts) {
+                                String trimmed = part.trim();
+                                int colon = trimmed.indexOf(':');
+                                if (colon <= 0) {
+                                        continue;
+                                }
+
+                                String key = trimmed.substring(0, colon).trim().toLowerCase();
+                                String value = trimmed.substring(colon + 1).trim();
+                                if ("doctor".equals(key) && (doctor == null || doctor.isBlank())) {
+                                        doctor = value;
+                                } else if ("date".equals(key) && (date == null || date.isBlank())) {
+                                        date = value;
+                                } else if ("time".equals(key) && (time == null || time.isBlank())) {
+                                        time = value;
+                                }
+                        }
+
+                        if ((date == null || date.isBlank()) || (time == null || time.isBlank())) {
+                                String schedulePart = parts.length > 1 ? parts[1].trim() : "";
+                                int atIndex = schedulePart.toLowerCase().indexOf(" at ");
+                                if (atIndex >= 0) {
+                                        if (date == null || date.isBlank()) {
+                                                date = schedulePart.substring(0, atIndex).trim();
+                                        }
+                                        if (time == null || time.isBlank()) {
+                                                time = schedulePart.substring(atIndex + 4).trim();
+                                        }
+                                } else if (date == null || date.isBlank()) {
+                                        date = schedulePart;
+                                }
+                        }
+                }
+
+                return new AppointmentEmailDetails(doctor, date, time);
         }
 
         @Async
