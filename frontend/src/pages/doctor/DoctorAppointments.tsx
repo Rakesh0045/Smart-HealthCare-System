@@ -234,7 +234,7 @@ export default function DoctorAppointments() {
             <p style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#92400e', margin: 0 }}>
               {pendingRx} completed appointment{pendingRx > 1 ? 's' : ''} awaiting prescription
             </p>
-            <button onClick={() => navigate('/doctor/prescriptions')} style={{ padding: '7px 16px', borderRadius: 8, background: '#d97706', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
+            <button onClick={() => navigate('/doctor/prescriptions/new')} style={{ padding: '7px 16px', borderRadius: 8, background: '#d97706', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
               Write Now
             </button>
           </div>
@@ -401,7 +401,7 @@ export default function DoctorAppointments() {
                     {a.status === 'COMPLETED' && !a.hasPrescription && (
                       <button
                         className="action-btn"
-                        onClick={() => navigate('/doctor/prescriptions')}
+                        onClick={() => navigate('/doctor/prescriptions/new')}
                         style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)', color: 'white' }}
                       >
                         + Add Rx

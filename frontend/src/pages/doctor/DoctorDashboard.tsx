@@ -1,15 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { appointmentApi, notificationApi } from '../../api'
 import { useAuthStore } from '../../store/authStore'
 import {
   Calendar, CheckCircle, Clock, Users, FileText,
-  Bell, TrendingUp, ArrowUpRight, ChevronRight,
-  Activity, MoreVertical, Search, Filter, Star,
-  UserCheck, Stethoscope, DollarSign, BarChart2,
-  Heart, Video, Phone, ChevronDown, UserX
+  ArrowUpRight,
+  DollarSign, UserX
 } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import toast from 'react-hot-toast'
+
+type StatsPeriod = '30d' | '90d' | 'all'
+
+function apptDayStartMs(a: { appointmentDate: string }): number {
+  const d = new Date(a.appointmentDate)
+  d.setHours(0, 0, 0, 0)
+  return d.getTime()
+}
+
+function inStatsPeriod(a: { appointmentDate: string }, period: StatsPeriod): boolean {
+  if (period === 'all') return true
+  const start = apptDayStartMs(a)
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const cutoff = new Date(now)
+  cutoff.setDate(cutoff.getDate() - (period === '30d' ? 30 : 90))
+  return start >= cutoff.getTime()
+}
 
 const generateAvatarUrl = (name?: string, size: number = 40) => 
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=0d9488&color=fff&bold=true&size=${size}`
@@ -39,7 +55,8 @@ export default function DoctorDashboard() {
   const [notifications, setNotifications] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [monthlyData, setMonthlyData] = useState<any[]>([])
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('30d')
+  const [tableStatusFilter, setTableStatusFilter] = useState<string>('ALL')
   const [completeModal, setCompleteModal] = useState<any>(null)
   const [completeNotes, setCompleteNotes] = useState('')
   const [completingId, setCompletingId] = useState<number | null>(null)
@@ -54,34 +71,13 @@ export default function DoctorDashboard() {
       setAppointments(all.data.data || [])
       setTodayAppointments((tod.data.data || []).filter((a: any) => a.status !== 'CANCELLED'))
       setNotifications((notif.data.data || []).slice(0, 4))
-
-      // Calculate monthly completed appointments
-      const completedAppointments = (all.data.data || []).filter((a: any) => a.status === 'COMPLETED')
-      const grouped: Record<string, { month: string; count: number }> = {}
-
-      completedAppointments.forEach((a: any) => {
-        const date = new Date(a.appointmentDate)
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-        const monthLabel = date.toLocaleString('default', { month: 'short', year: '2-digit' })
-
-        if (!grouped[monthKey]) {
-          grouped[monthKey] = { month: monthLabel, count: 0 }
-        }
-        grouped[monthKey].count += 1
-      })
-
-      const result = Object.keys(grouped)
-        .sort()
-        .map(monthKey => grouped[monthKey])
-
-      setMonthlyData(result)
     }).finally(() => setLoading(false))
   }
   useEffect(() => { load() }, [])
 
-  const getMonthlyChartData = () => {
+  const monthlyChartData = useMemo(() => {
     const now = new Date()
-    const months = []
+    const months: { label: string; year: number; count: number; key: string }[] = []
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
       const year = d.getFullYear()
@@ -99,25 +95,88 @@ export default function DoctorDashboard() {
       })
     }
     return months
-  }
+  }, [appointments])
 
-  const monthlyChartData = getMonthlyChartData()
   const maxMonthCount = Math.max(...monthlyChartData.map(m => m.count), 1)
 
-  const getMonthCompleted = () => {
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    return appointments.filter(a => 
-      a.status === 'COMPLETED' && new Date(a.appointmentDate) >= startOfMonth
-    ).length
-  }
+  const scopedAppointments = useMemo(
+    () => appointments.filter(a => inStatsPeriod(a, statsPeriod)),
+    [appointments, statsPeriod]
+  )
 
-  const scheduled = appointments.filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED').length
-  const completed = appointments.filter(a => a.status === 'COMPLETED').length
-  const monthlyCompleted = getMonthCompleted()
-  const pendingRx = appointments.filter(a => a.status === 'COMPLETED' && !a.hasPrescription).length
-  const revenue = appointments.filter(a => a.paymentStatus === 'PAID').reduce((s, a) => s + (a.consultationFee || 0), 0)
-  const unreadNotif = notifications.filter(n => !n.isRead).length
+  const uniquePatientCount = useMemo(() => {
+    const ids = new Set<number>()
+    for (const a of appointments) {
+      if (a.patientId != null) ids.add(Number(a.patientId))
+    }
+    return ids.size
+  }, [appointments])
+
+  const pendingRx = useMemo(
+    () => appointments.filter(a => a.status === 'COMPLETED' && !a.hasPrescription).length,
+    [appointments]
+  )
+
+  const revenueLifetime = useMemo(
+    () => appointments.filter(a => a.paymentStatus === 'PAID').reduce((s, a) => s + (Number(a.consultationFee) || 0), 0),
+    [appointments]
+  )
+
+  const revenueScoped = useMemo(
+    () => scopedAppointments.filter(a => a.paymentStatus === 'PAID').reduce((s, a) => s + (Number(a.consultationFee) || 0), 0),
+    [scopedAppointments]
+  )
+
+  const scheduledScoped = useMemo(
+    () => scopedAppointments.filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED').length,
+    [scopedAppointments]
+  )
+
+  const completedScoped = useMemo(
+    () => scopedAppointments.filter(a => a.status === 'COMPLETED').length,
+    [scopedAppointments]
+  )
+
+  const statusSlices = useMemo(() => {
+    const src = scopedAppointments
+    const n = src.length
+    return {
+      n,
+      completed: src.filter(a => a.status === 'COMPLETED').length,
+      scheduled: src.filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED').length,
+      cancelled: src.filter(a => a.status === 'CANCELLED').length,
+      noShow: src.filter(a => a.status === 'NO_SHOW').length,
+    }
+  }, [scopedAppointments])
+
+  const pieGradient = useMemo(() => {
+    const { n, completed, scheduled, cancelled, noShow } = statusSlices
+    if (n === 0) return 'conic-gradient(#e2e8f0 0deg 360deg)'
+    let cur = 0
+    const parts: string[] = []
+    const seg = (count: number, color: string) => {
+      if (count <= 0) return
+      const deg = (count / n) * 360
+      const start = cur
+      cur += deg
+      parts.push(`${color} ${start}deg ${cur}deg`)
+    }
+    seg(completed, '#10b981')
+    seg(scheduled, '#0d9488')
+    seg(cancelled, '#ef4444')
+    seg(noShow, '#64748b')
+    return `conic-gradient(${parts.join(', ')})`
+  }, [statusSlices])
+
+  const paidInScopeCount = useMemo(
+    () => scopedAppointments.filter(a => a.paymentStatus === 'PAID').length,
+    [scopedAppointments]
+  )
+
+  const avgPaidInScope = paidInScopeCount > 0 ? Math.round(revenueScoped / paidInScopeCount) : 0
+
+  const periodLabel = statsPeriod === 'all' ? 'All time' : statsPeriod === '30d' ? 'Last 30 days' : 'Last 90 days'
+
   const todayScheduled = todayAppointments.filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED').length
   const todayPendingPayment = todayAppointments.filter(a => (a.paymentStatus || 'PENDING') !== 'PAID' && a.status !== 'CANCELLED' && a.status !== 'NO_SHOW').length
   const todayPendingRx = todayAppointments.filter(a => a.status === 'COMPLETED' && !a.hasPrescription).length
@@ -133,8 +192,11 @@ export default function DoctorDashboard() {
     setCompletingId(completeModal.id)
     try {
       await appointmentApi.complete(completeModal.id, completeNotes, paymentCollected)
+      toast.success('Visit marked completed')
       setCompleteModal(null)
       load()
+    } catch {
+      /* error toast from API interceptor */
     } finally {
       setCompletingId(null)
     }
@@ -142,13 +204,27 @@ export default function DoctorDashboard() {
 
   const handleNoShow = async (id: number) => {
     if (!confirm('Mark this patient as no-show? The patient will be notified and can reschedule.')) return
-    await appointmentApi.markNoShow(id)
-    load()
+    try {
+      await appointmentApi.markNoShow(id)
+      toast.success('Marked as no-show')
+      load()
+    } catch {
+      /* error toast from API interceptor */
+    }
   }
 
-  const filteredToday = todayAppointments.filter(a =>
-    !searchQuery || a.patientName?.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredToday = todayAppointments.filter(a => {
+    const q = searchQuery.trim().toLowerCase()
+    const matchesSearch = !q || a.patientName?.toLowerCase().includes(q)
+    const matchesStatus =
+      tableStatusFilter === 'ALL' ||
+      (tableStatusFilter === 'SCHEDULED' &&
+        (a.status === 'SCHEDULED' || a.status === 'RESCHEDULED')) ||
+      (tableStatusFilter !== 'ALL' &&
+        tableStatusFilter !== 'SCHEDULED' &&
+        a.status === tableStatusFilter)
+    return matchesSearch && matchesStatus
+  })
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', fontFamily: "'Sora', sans-serif" }}>
@@ -271,13 +347,41 @@ export default function DoctorDashboard() {
           </div>
         </div>
 
-        {/* STAT CARDS */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
+        {/* STAT CARDS — metrics are factual (no fabricated trends) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
           {[
-            { label: 'Total Patients', value: appointments.length, icon: Users, grad: 'linear-gradient(135deg, #1e40af, #3b82f6)', change: '+12%', changeLabel: 'From last month' },
-            { label: "Today's Appointments", value: todayAppointments.length, icon: Calendar, grad: 'linear-gradient(135deg, #be185d, #ec4899)', change: '+3', changeLabel: 'From yesterday' },
-            { label: 'Pending Reports', value: pendingRx, icon: FileText, grad: 'linear-gradient(135deg, #c2410c, #f97316)', change: `${pendingRx} pending`, changeLabel: 'Prescriptions' },
-            { label: 'Revenue Earned', value: `₹${revenue.toLocaleString()}`, icon: DollarSign, grad: 'linear-gradient(135deg, #15803d, #22c55e)', change: '+18%', changeLabel: 'From last month' },
+            {
+              label: 'Unique patients',
+              value: uniquePatientCount,
+              icon: Users,
+              grad: 'linear-gradient(135deg, #1e40af, #3b82f6)',
+              change: `${appointments.length} total visit${appointments.length !== 1 ? 's' : ''}`,
+              changeLabel: 'Distinct patient profiles',
+            },
+            {
+              label: "Today's appointments",
+              value: todayAppointments.length,
+              icon: Calendar,
+              grad: 'linear-gradient(135deg, #be185d, #ec4899)',
+              change: new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }),
+              changeLabel: 'On your calendar today',
+            },
+            {
+              label: 'Pending prescriptions',
+              value: pendingRx,
+              icon: FileText,
+              grad: 'linear-gradient(135deg, #c2410c, #f97316)',
+              change: 'Completed visits',
+              changeLabel: 'Without a prescription yet',
+            },
+            {
+              label: statsPeriod === 'all' ? 'Paid revenue (all time)' : `Paid revenue (${periodLabel.toLowerCase()})`,
+              value: `₹${(statsPeriod === 'all' ? revenueLifetime : revenueScoped).toLocaleString('en-IN')}`,
+              icon: DollarSign,
+              grad: 'linear-gradient(135deg, #15803d, #22c55e)',
+              change: statsPeriod === 'all' ? 'Sum of paid consultation fees' : `${paidInScopeCount} paid in range`,
+              changeLabel: statsPeriod !== 'all' ? `All-time: ₹${revenueLifetime.toLocaleString('en-IN')}` : 'Online + clinic-collected',
+            },
           ].map((s, i) => (
             <div key={s.label} className="pv-stat-card" style={{ background: s.grad, animationDelay: `${i * 0.08}s` }}>
               <div style={{ position: 'relative', zIndex: 1 }}>
@@ -285,13 +389,12 @@ export default function DoctorDashboard() {
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <s.icon style={{ width: 20, height: 20, color: 'white' }} />
                   </div>
-                  <MoreVertical style={{ width: 16, height: 16, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }} />
                 </div>
                 <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>{s.label}</p>
                 <p style={{ fontSize: 32, fontWeight: 700, color: 'white', margin: '0 0 10px', lineHeight: 1 }}>{s.value}</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{s.change}</span>
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)' }}>{s.changeLabel}</span>
+                  {s.changeLabel ? <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)' }}>{s.changeLabel}</span> : null}
                 </div>
               </div>
             </div>
@@ -330,46 +433,62 @@ export default function DoctorDashboard() {
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>Appointment Overview</h2>
                   <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Track and manage your patient appointments</p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 12px', borderRadius: 8, border: '1.5px solid #e6f7f5', background: 'white', fontSize: 12, fontWeight: 600, color: '#0d9488', cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
-                    Last 30 days <ChevronDown style={{ width: 14, height: 14 }} />
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  {(['30d', '90d', 'all'] as StatsPeriod[]).map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setStatsPeriod(p)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        padding: '7px 12px', borderRadius: 8,
+                        border: statsPeriod === p ? '1.5px solid #0d9488' : '1.5px solid #e6f7f5',
+                        background: statsPeriod === p ? '#f0fdfa' : 'white',
+                        fontSize: 12, fontWeight: 600,
+                        color: statsPeriod === p ? '#0f766e' : '#64748b',
+                        cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+                      }}
+                    >
+                      {p === '30d' ? '30 days' : p === '90d' ? '90 days' : 'All time'}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {/* Main Stats Grid */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
                 <div style={{ padding: '16px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #f0fdfa, #e6f7f5)', border: '1px solid #ccfbf1' }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 8px' }}>Total Scheduled</p>
-                  <p style={{ fontSize: 36, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', lineHeight: 1 }}>{scheduled}</p>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#10b981' }}>↑ 47% From last month</span>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 8px' }}>Scheduled / upcoming</p>
+                  <p style={{ fontSize: 36, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', lineHeight: 1 }}>{scheduledScoped}</p>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{periodLabel} · scheduled or rescheduled</span>
                 </div>
                 <div style={{ padding: '16px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', border: '1px solid #ddd6fe' }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 8px' }}>Total Completed</p>
-                  <p style={{ fontSize: 36, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', lineHeight: 1 }}>{completed}</p>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#10b981' }}>↑ 23% From last month</span>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 8px' }}>Completed visits</p>
+                  <p style={{ fontSize: 36, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', lineHeight: 1 }}>{completedScoped}</p>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{periodLabel}</span>
                 </div>
               </div>
 
               {/* Status Breakdown Pie Chart */}
               <div style={{ marginBottom: 24, padding: '16px', borderRadius: 12, background: '#fafffe', border: '1px solid #f0fdf4' }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 12, margin: '0 0 12px' }}>Appointment Status Distribution</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-                  {/* Simple Pie Chart Representation */}
-                  <div style={{ position: 'relative', width: 120, height: 120, borderRadius: '50%', background: `conic-gradient(#10b981 0deg ${(completed / appointments.length * 360) || 0}deg, #0d9488 ${(completed / appointments.length * 360) || 0}deg ${((completed + scheduled) / appointments.length * 360) || 180}deg, #f59e0b ${((completed + scheduled) / appointments.length * 360) || 180}deg 360deg)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 12, margin: '0 0 12px' }}>
+                  Status mix ({periodLabel.toLowerCase()})
+                </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+                  <div style={{ position: 'relative', width: 120, height: 120, borderRadius: '50%', background: pieGradient, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <div style={{ width: 100, height: 100, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: 0 }}>{appointments.length}</p>
-                        <p style={{ fontSize: 10, color: '#94a3b8', margin: 0 }}>Total</p>
+                        <p style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: 0 }}>{statusSlices.n}</p>
+                        <p style={{ fontSize: 10, color: '#94a3b8', margin: 0 }}>In range</p>
                       </div>
                     </div>
                   </div>
-                  {/* Legend */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 200 }}>
                     {[
-                      { label: 'Completed', value: completed, color: '#10b981' },
-                      { label: 'Scheduled', value: scheduled, color: '#0d9488' },
-                      { label: 'Other', value: appointments.length - completed - scheduled, color: '#f59e0b' },
+                      { label: 'Completed', value: statusSlices.completed, color: '#10b981' },
+                      { label: 'Scheduled', value: statusSlices.scheduled, color: '#0d9488' },
+                      { label: 'Cancelled', value: statusSlices.cancelled, color: '#ef4444' },
+                      { label: 'No-show', value: statusSlices.noShow, color: '#64748b' },
                     ].map(item => (
                       <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 10, height: 10, borderRadius: 3, background: item.color, flexShrink: 0 }} />
@@ -429,10 +548,30 @@ export default function DoctorDashboard() {
                   <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>Recent Patient Appointment</h2>
                   <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Keep track of your patient data and appointments</p>
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 8, border: '1.5px solid #e6f7f5', background: 'white', fontSize: 12, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
-                    <Filter style={{ width: 13, height: 13 }} /> Filters
-                  </button>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <input
+                    type="search"
+                    placeholder="Search patient…"
+                    value={searchQuery}
+                    onChange={e => setSearchQuery(e.target.value)}
+                    className="search-input"
+                    style={{ maxWidth: 200, minWidth: 140, paddingLeft: 12 }}
+                  />
+                  <select
+                    value={tableStatusFilter}
+                    onChange={e => setTableStatusFilter(e.target.value)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
+                      border: '1.5px solid #e6f7f5', background: 'white', fontSize: 12, fontWeight: 600,
+                      color: '#475569', cursor: 'pointer', fontFamily: 'Sora, sans-serif',
+                    }}
+                  >
+                    <option value="ALL">All statuses</option>
+                    <option value="SCHEDULED">Scheduled + rescheduled</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="NO_SHOW">No-show</option>
+                    <option value="CANCELLED">Cancelled</option>
+                  </select>
                   <button onClick={() => navigate('/doctor/appointments')} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 14px', borderRadius: 8, background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
                     View all <ArrowUpRight style={{ width: 13, height: 13 }} />
                   </button>
@@ -494,7 +633,7 @@ export default function DoctorDashboard() {
                           </>
                         )}
                         {a.status === 'COMPLETED' && !a.hasPrescription && (
-                          <button onClick={() => navigate('/doctor/prescriptions')} className="complete-btn" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
+                          <button onClick={() => navigate('/doctor/prescriptions/new')} className="complete-btn" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
                             Add Rx
                           </button>
                         )}
@@ -521,10 +660,10 @@ export default function DoctorDashboard() {
               <h2 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 14px' }}>Quick Stats</h2>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
-                  { label: 'Avg per session', value: completed > 0 ? `₹${Math.round(revenue / completed).toLocaleString()}` : '₹0', color: '#0d9488', bg: '#f0fdfa', icon: DollarSign },
+                  { label: 'Avg paid (in range)', value: paidInScopeCount > 0 ? `₹${avgPaidInScope.toLocaleString('en-IN')}` : '—', color: '#0d9488', bg: '#f0fdfa', icon: DollarSign },
                   { label: 'Pending prescriptions', value: pendingRx, color: '#f59e0b', bg: '#fffbeb', icon: FileText },
-                  { label: 'Total completed', value: completed, color: '#10b981', bg: '#f0fdf4', icon: CheckCircle },
-                  { label: 'Upcoming scheduled', value: scheduled, color: '#7c3aed', bg: '#f5f3ff', icon: Clock },
+                  { label: 'Completed (in range)', value: completedScoped, color: '#10b981', bg: '#f0fdf4', icon: CheckCircle },
+                  { label: 'Scheduled (in range)', value: scheduledScoped, color: '#7c3aed', bg: '#f5f3ff', icon: Clock },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: item.bg, border: `1px solid ${item.color}20` }}>
                     <div style={{ width: 34, height: 34, borderRadius: 10, background: `${item.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

@@ -14,13 +14,19 @@ const SPECIALIZATIONS = ['Cardiology','Neurology','General Medicine','Dermatolog
 export default function DoctorProfile() {
   const { user, updateUser } = useAuthStore()
   const [form, setForm] = useState({ specialization:'',experience:'',consultationFee:'',bio:'',qualification:'',hospital:'',slotDuration:'30' })
+  const [rating, setRating] = useState<number | null>(null)
+  const [totalRatings, setTotalRatings] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     doctorApi.getMyProfile().then(r => {
       const d = r.data.data
-      if (d) setForm({ specialization:d.specialization||'', experience:String(d.experience||''), consultationFee:String(d.consultationFee||''), bio:d.bio||'', qualification:d.qualification||'', hospital:d.hospital||'', slotDuration:String(d.slotDuration||'30') })
+      if (d) {
+        setForm({ specialization:d.specialization||'', experience:String(d.experience||''), consultationFee:String(d.consultationFee||''), bio:d.bio||'', qualification:d.qualification||'', hospital:d.hospital||'', slotDuration:String(d.slotDuration||'30') })
+        setRating(d.rating != null ? Number(d.rating) : null)
+        setTotalRatings(d.totalRatings != null ? Number(d.totalRatings) : null)
+      }
     }).catch(()=>{}).finally(()=>setLoading(false))
   },[])
 
@@ -111,8 +117,14 @@ export default function DoctorProfile() {
               </p>
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6, marginBottom: 16 }}>
                 <Star style={{ width: 14, height: 14, color: '#f59e0b', fill: '#f59e0b' }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>4.8</span>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>(120 reviews)</span>
+                {rating != null && rating > 0 && (totalRatings ?? 0) > 0 ? (
+                  <>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{rating.toFixed(1)}</span>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>({totalRatings} review{(totalRatings ?? 0) !== 1 ? 's' : ''})</span>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#94a3b8' }}>No ratings yet</span>
+                )}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
                 <div className="stat-pill">
@@ -203,7 +215,7 @@ export default function DoctorProfile() {
             <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid #f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#94a3b8' }}>
                 <CheckCircle2 style={{ width: 14, height: 14, color: '#10b981' }} />
-                All changes are saved automatically
+                Save when you are done editing
               </div>
               <button onClick={handleSave} disabled={saving} className="save-btn">
                 <Save style={{ width: 16, height: 16 }} />

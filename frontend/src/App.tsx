@@ -15,6 +15,8 @@ import DoctorAppointments from './pages/doctor/DoctorAppointments'
 import DoctorSchedule from './pages/doctor/DoctorSchedule'
 import DoctorProfile from './pages/doctor/DoctorProfile'
 import AddPrescription from './pages/doctor/AddPrescription'
+import DoctorPrescriptionsList from './pages/doctor/DoctorPrescriptionsList'
+import DoctorPatients from './pages/doctor/DoctorPatients'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ManageDoctors from './pages/admin/ManageDoctors'
 import ManagePatients from './pages/admin/ManagePatients'
@@ -69,7 +71,9 @@ export default function App() {
         <Route path="appointments" element={<DoctorAppointments />} />
         <Route path="availability" element={<DoctorSchedule />} />
         <Route path="schedule" element={<Navigate to="/doctor/availability" replace />} />
-        <Route path="prescriptions" element={<AddPrescription />} />
+        <Route path="prescriptions" element={<DoctorPrescriptionsList />} />
+        <Route path="prescriptions/new" element={<AddPrescription />} />
+        <Route path="patients" element={<DoctorPatients />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<DoctorProfile />} />
       </Route>

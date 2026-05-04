@@ -81,6 +81,11 @@ public class PrescriptionController {
     }
 
     private Long uid(UserDetails ud) {
-        return userRepo.findByEmail(ud.getUsername()).orElseThrow().getId();
+        if (ud == null) {
+            throw new com.healthcare.exception.BadRequestException("Missing authentication context");
+        }
+        return userRepo.findByEmail(ud.getUsername())
+                .orElseThrow(() -> new com.healthcare.exception.ResourceNotFoundException("User not found"))
+                .getId();
     }
 }

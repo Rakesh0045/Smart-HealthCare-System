@@ -25,6 +25,7 @@ const navConfig = {
   DOCTOR: [
     { to: '/doctor/dashboard',     label: 'Overview',       icon: LayoutDashboard, section: 'main' },
     { to: '/doctor/appointments',  label: 'Appointments',   icon: Calendar,        section: 'main' },
+    { to: '/doctor/patients',      label: 'My Patients',    icon: Users,           section: 'main' },
     { to: '/doctor/prescriptions', label: 'Prescriptions',  icon: FileText,        section: 'main' },
     { to: '/doctor/availability',  label: 'My Schedule',    icon: Clock,           section: 'main' },
     { to: '/doctor/profile',       label: 'My Profile',     icon: User,            section: 'settings' },

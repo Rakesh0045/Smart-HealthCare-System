@@ -1,5 +1,6 @@
 // AddPrescription.tsx - ProvoHeal redesign
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { prescriptionApi, appointmentApi } from '../../api'
 import { LoadingSpinner } from '../../components/common'
 import { Plus, Trash2, Save, FileText, CheckCircle, ChevronRight, User, Stethoscope } from 'lucide-react'
@@ -119,8 +120,18 @@ export default function AddPrescription() {
         {/* HEADER */}
         <div style={{ marginBottom: 28, animation: 'fadeSlide 0.4s ease both' }}>
           <p style={{ fontSize: 12, fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>Doctor Portal</p>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0 }}>Write Prescription</h1>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Add prescriptions for completed appointments</p>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div>
+              <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0 }}>Write Prescription</h1>
+              <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Add prescriptions for completed appointments</p>
+            </div>
+            <Link
+              to="/doctor/prescriptions"
+              style={{ fontSize: 13, fontWeight: 700, color: '#0d9488', textDecoration: 'none', paddingTop: 4 }}
+            >
+              ← All prescriptions
+            </Link>
+          </div>
         </div>
 
         {!selectedAppt ? (
