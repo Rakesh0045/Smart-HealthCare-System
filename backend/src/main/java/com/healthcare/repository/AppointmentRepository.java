@@ -31,9 +31,9 @@ public interface AppointmentRepository extends JpaRepository<Appointment, Long> 
         List<Appointment> findByStatusAndReminderSentFalseAndAppointmentDate(
                         AppointmentStatus status, LocalDate date);
 
-        @Query("SELECT a FROM Appointment a WHERE a.status IN ('SCHEDULED','RESCHEDULED') AND (a.appointmentDate < :today OR (a.appointmentDate = :today AND a.endTime <= :now))")
-        List<Appointment> findOverdueAppointments(@Param("today") LocalDate today,
-                        @Param("now") java.time.LocalTime now);
+        @Query("SELECT a FROM Appointment a WHERE a.status IN ('SCHEDULED','RESCHEDULED') " +
+                        "AND a.appointmentDate < :today")
+        List<Appointment> findOverdueAppointments(@Param("today") LocalDate today);
 
         @Query("SELECT COUNT(a) FROM Appointment a WHERE a.doctor.id = :doctorId AND a.status = 'COMPLETED'")
         long countCompletedByDoctor(@Param("doctorId") Long doctorId);

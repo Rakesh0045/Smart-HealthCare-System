@@ -42,6 +42,10 @@ public class PaymentService {
         if (!appointment.getPatient().getUser().getId().equals(userId)) {
             throw new BadRequestException("You can only pay for your own appointments.");
         }
+        if (appointment.getStatus() == com.healthcare.enums.AppointmentStatus.CANCELLED
+                || appointment.getStatus() == com.healthcare.enums.AppointmentStatus.NO_SHOW) {
+            throw new BadRequestException("Cannot pay for a cancelled or missed appointment.");
+        }
 
         Payment existingPayment = paymentRepo.findByAppointmentId(appointmentId).orElse(null);
         if (appointment.getPaymentStatus() == PaymentStatus.PAID
@@ -112,12 +116,17 @@ public class PaymentService {
             if (!payment.getAppointment().getPatient().getUser().getId().equals(userId)) {
                 throw new BadRequestException("You can only verify your own appointment payments.");
             }
+
+            Appointment appointment = payment.getAppointment();
+            if (appointment.getStatus() == com.healthcare.enums.AppointmentStatus.CANCELLED
+                    || appointment.getStatus() == com.healthcare.enums.AppointmentStatus.NO_SHOW) {
+                throw new BadRequestException("Cannot pay for a cancelled or missed appointment.");
+            }
             payment.setRazorpayPaymentId(req.getRazorpayPaymentId());
             payment.setRazorpaySignature(req.getRazorpaySignature());
             payment.setStatus(PaymentStatus.PAID);
             paymentRepo.save(payment);
 
-            Appointment appointment = payment.getAppointment();
             appointment.setPaymentStatus(com.healthcare.enums.PaymentStatus.PAID);
             appointmentRepo.save(appointment);
 
@@ -139,6 +148,10 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Appointment", appointmentId));
         if (!appointment.getPatient().getUser().getId().equals(userId)) {
             throw new BadRequestException("You can only update payment choice for your own appointments.");
+        }
+        if (appointment.getStatus() == com.healthcare.enums.AppointmentStatus.CANCELLED
+                || appointment.getStatus() == com.healthcare.enums.AppointmentStatus.NO_SHOW) {
+            throw new BadRequestException("Cannot pay for a cancelled or missed appointment.");
         }
 
         Payment existingPayment = paymentRepo.findByAppointmentId(appointmentId).orElse(null);

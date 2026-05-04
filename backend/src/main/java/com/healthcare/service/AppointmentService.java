@@ -55,6 +55,9 @@ public class AppointmentService {
         if (req.getAppointmentDate().isBefore(LocalDate.now())) {
             throw new BadRequestException("Cannot book appointments in the past.");
         }
+        if (req.getAppointmentDate().equals(LocalDate.now()) && !req.getStartTime().isAfter(LocalTime.now())) {
+            throw new BadRequestException("For today, please choose a future time slot.");
+        }
 
         LocalTime endTime = req.getStartTime().plusMinutes(doctor.getSlotDuration());
 
@@ -153,6 +156,12 @@ public class AppointmentService {
         }
 
         Doctor doctor = old.getDoctor();
+        if (req.getAppointmentDate().isBefore(LocalDate.now())) {
+            throw new BadRequestException("Cannot reschedule appointments to a past date.");
+        }
+        if (req.getAppointmentDate().equals(LocalDate.now()) && !req.getStartTime().isAfter(LocalTime.now())) {
+            throw new BadRequestException("For today, please choose a future time slot.");
+        }
         LocalTime endTime = req.getStartTime().plusMinutes(doctor.getSlotDuration());
 
         if (!slotService.isSlotAvailable(doctor.getId(), req.getAppointmentDate(),

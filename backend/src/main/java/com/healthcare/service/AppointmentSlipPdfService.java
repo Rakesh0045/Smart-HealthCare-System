@@ -3,7 +3,6 @@ package com.healthcare.service;
 import com.healthcare.entity.Appointment;
 import com.itextpdf.io.font.constants.StandardFonts;
 import com.itextpdf.io.image.ImageDataFactory;
-import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.events.PdfDocumentEvent;
 import com.itextpdf.kernel.font.PdfFont;
@@ -14,7 +13,6 @@ import com.itextpdf.kernel.pdf.PdfPage;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.kernel.pdf.canvas.PdfCanvas;
 import com.itextpdf.kernel.pdf.canvas.draw.SolidLine;
-import com.itextpdf.layout.Canvas;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.borders.Border;
 import com.itextpdf.layout.borders.SolidBorder;
@@ -26,7 +24,6 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -56,15 +53,14 @@ public class AppointmentSlipPdfService {
         private static final DeviceRgb C_TEAL = new DeviceRgb(13, 148, 136);
         private static final DeviceRgb C_TEAL_LIGHT = new DeviceRgb(240, 253, 250);
         private static final DeviceRgb C_TEAL_MID = new DeviceRgb(180, 235, 225);
-        private static final DeviceRgb C_NAVY = new DeviceRgb(15, 40, 90);
-        private static final DeviceRgb C_NAVY_MID = new DeviceRgb(37, 99, 235);
+        private static final DeviceRgb C_NAVY = new DeviceRgb(30, 58, 95);
+        private static final DeviceRgb C_NAVY_MID = new DeviceRgb(51, 90, 150);
         private static final DeviceRgb C_DARK = new DeviceRgb(17, 24, 39);
         private static final DeviceRgb C_SLATE = new DeviceRgb(71, 85, 105);
         private static final DeviceRgb C_MUTED = new DeviceRgb(148, 163, 184);
-        private static final DeviceRgb C_WHITE = new DeviceRgb(255, 255, 255);
         private static final DeviceRgb C_LIGHT_BG = new DeviceRgb(249, 250, 251);
         private static final DeviceRgb C_BORDER = new DeviceRgb(226, 232, 240);
-        private static final DeviceRgb C_CARD_BG = new DeviceRgb(252, 253, 254);
+        private static final DeviceRgb C_CARD_BG = new DeviceRgb(255, 255, 255);
 
         // Status colours
         private static final DeviceRgb C_GREEN_BG = new DeviceRgb(220, 252, 231);
@@ -78,7 +74,6 @@ public class AppointmentSlipPdfService {
         private static final DeviceRgb C_RED_BORD = new DeviceRgb(252, 165, 165);
         private static final DeviceRgb C_BLUE_BG = new DeviceRgb(219, 234, 254);
         private static final DeviceRgb C_BLUE_FG = new DeviceRgb(30, 64, 175);
-        private static final DeviceRgb C_BLUE_BORD = new DeviceRgb(147, 197, 253);
 
         // ── Page geometry ──────────────────────────────────────────────────────────
         private static final float MARGIN_X = 32f;
@@ -114,7 +109,7 @@ public class AppointmentSlipPdfService {
                         document.add(new LineSeparator(new SolidLine(0.6f))
                                         .setStrokeColor(C_BORDER).setMarginBottom(10));
 
-                        // 3. ID ribbon (navy bar with appt ID / UHID / generated date + payment pill)
+                        // 3. ID ribbon (professional metadata strip + payment pill)
                         document.add(buildApptRibbon(appointment));
 
                         // 4. Two-column info cards: Patient | Doctor
@@ -211,8 +206,9 @@ public class AppointmentSlipPdfService {
                                 .format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));
 
                 Div ribbon = new Div()
-                                .setBackgroundColor(C_NAVY)
-                                .setBorderRadius(new BorderRadius(8))
+                                .setBackgroundColor(C_CARD_BG)
+                                .setBorder(new SolidBorder(C_BORDER, 1f))
+                                .setBorderRadius(new BorderRadius(6))
                                 .setPaddingLeft(16).setPaddingRight(16)
                                 .setPaddingTop(10).setPaddingBottom(10)
                                 .setMarginBottom(10);
@@ -286,7 +282,7 @@ public class AppointmentSlipPdfService {
                                 .setFont(FR).setFontSize(6.5f).setFontColor(C_MUTED)
                                 .setTextAlignment(align).setMargin(0).setMarginBottom(3));
                 c.add(new Paragraph(value)
-                                .setFont(FB).setFontSize(9.5f).setFontColor(C_WHITE)
+                                .setFont(FB).setFontSize(9.5f).setFontColor(C_DARK)
                                 .setTextAlignment(align).setMargin(0));
                 return c;
         }
@@ -403,16 +399,16 @@ public class AppointmentSlipPdfService {
                                 : "30 min";
 
                 Div card = new Div()
-                                .setBackgroundColor(C_TEAL_LIGHT)
-                                .setBorder(new SolidBorder(C_TEAL_MID, 1f))
-                                .setBorderRadius(new BorderRadius(8))
+                                .setBackgroundColor(C_CARD_BG)
+                                .setBorder(new SolidBorder(C_BORDER, 1f))
+                                .setBorderRadius(new BorderRadius(6))
                                 .setPaddingLeft(16).setPaddingRight(16)
                                 .setPaddingTop(12).setPaddingBottom(12)
                                 .setMarginBottom(10);
 
                 // Row label
                 card.add(new Paragraph("APPOINTMENT SCHEDULE")
-                                .setFont(FB).setFontSize(7.5f).setFontColor(C_TEAL)
+                                .setFont(FB).setFontSize(7.5f).setFontColor(C_NAVY)
                                 .setCharacterSpacing(0.4f).setMargin(0).setMarginBottom(10));
 
                 // 4-column schedule row
@@ -548,14 +544,14 @@ public class AppointmentSlipPdfService {
 
         private Div buildNoticeBox() {
                 Div d = new Div()
-                                .setBackgroundColor(C_AMBER_BG)
-                                .setBorder(new SolidBorder(C_AMBER_BORD, 1f))
+                                .setBackgroundColor(C_LIGHT_BG)
+                                .setBorder(new SolidBorder(C_BORDER, 1f))
                                 .setBorderRadius(new BorderRadius(6))
                                 .setPadding(11).setPaddingLeft(14)
                                 .setMarginBottom(10);
 
                 d.add(new Paragraph("IMPORTANT INSTRUCTIONS")
-                                .setFont(FB).setFontSize(7.5f).setFontColor(C_AMBER_FG)
+                                .setFont(FB).setFontSize(7.5f).setFontColor(C_NAVY)
                                 .setCharacterSpacing(0.4f).setMargin(0).setMarginBottom(7));
 
                 String[] notices = {
@@ -568,7 +564,7 @@ public class AppointmentSlipPdfService {
 
                 for (String n : notices) {
                         d.add(new Paragraph("\u2013  " + n)
-                                        .setFont(FR).setFontSize(8f).setFontColor(C_AMBER_FG)
+                                        .setFont(FR).setFontSize(8f).setFontColor(C_SLATE)
                                         .setMargin(0).setMarginBottom(3).setMarginLeft(4));
                 }
                 return d;
@@ -622,13 +618,13 @@ public class AppointmentSlipPdfService {
                                 float h = PageSize.A4.getHeight();
                                 float m = 14f;
 
-                                // Single clean outer border in teal
-                                canvas.setStrokeColor(C_TEAL).setLineWidth(1.5f)
+                                // Subtle outer border
+                                canvas.setStrokeColor(C_BORDER).setLineWidth(0.8f)
                                                 .rectangle(m, m, w - 2 * m, h - 2 * m).stroke();
 
-                                // Slim navy footer bar
-                                float footerH = 18f;
-                                canvas.setFillColor(C_NAVY)
+                                // Minimal footer strip
+                                float footerH = 16f;
+                                canvas.setFillColor(C_LIGHT_BG)
                                                 .rectangle(m, m, w - 2 * m, footerH).fill();
 
                                 PdfFont fr = PdfFontFactory.createFont(StandardFonts.HELVETICA);
@@ -644,8 +640,8 @@ public class AppointmentSlipPdfService {
                                 // Footer right text
                                 canvas.setFillColor(C_MUTED).setFontAndSize(fr, 6.5f)
                                                 .beginText()
-                                                .moveText(w - m - 130, m + 6)
-                                                .showText("Computer-generated document. Not valid without appointment ID.")
+                                                .moveText(w - m - 210, m + 6)
+                                                .showText("Computer-generated OPD slip")
                                                 .endText();
 
                         } catch (Exception ex) {

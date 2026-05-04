@@ -8,7 +8,6 @@ import com.healthcare.entity.*;
 import com.healthcare.exception.*;
 import com.healthcare.repository.*;
 import com.itextpdf.io.font.constants.StandardFonts;
-import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.colors.DeviceRgb;
 import com.itextpdf.kernel.events.PdfDocumentEvent;
 import com.itextpdf.kernel.font.PdfFont;
@@ -56,8 +55,8 @@ public class PrescriptionService {
     // ─── Design System ────────────────────────────────────────────────────────
     // Ink-on-paper palette: near-black text, single accent, neutral greys
     private static final DeviceRgb INK        = new DeviceRgb(14, 17, 22);      // near-black
-    private static final DeviceRgb ACCENT     = new DeviceRgb(0, 102, 102);     // deep teal
-    private static final DeviceRgb ACCENT_DIM = new DeviceRgb(0, 128, 128);     // medium teal
+    private static final DeviceRgb ACCENT     = new DeviceRgb(16, 96, 92);      // deep teal
+    private static final DeviceRgb ACCENT_DIM = new DeviceRgb(60, 130, 126);    // medium teal
     private static final DeviceRgb GHOST      = new DeviceRgb(246, 248, 250);   // off-white bg
     private static final DeviceRgb RULE       = new DeviceRgb(218, 224, 230);   // hairline
     private static final DeviceRgb MUTED      = new DeviceRgb(100, 116, 135);   // labels / meta
@@ -66,15 +65,15 @@ public class PrescriptionService {
     private static final DeviceRgb WARNING_TX = new DeviceRgb(100, 70, 10);     // dark amber
     private static final DeviceRgb FOLLOW_BG  = new DeviceRgb(240, 248, 247);   // teal wash
     private static final DeviceRgb WHITE      = new DeviceRgb(255, 255, 255);
-    private static final DeviceRgb RX_RED     = new DeviceRgb(180, 40, 40);     // subtle red
+    private static final DeviceRgb RX_RED     = new DeviceRgb(149, 39, 39);     // subtle red
 
     // Dose slot labels
     private static final String[] DOSE_TIME_LABELS = { "08:00", "13:00", "20:00", "22:00" };
 
     // Page geometry
-    private static final float MARGIN_H = 52f;  // horizontal margin
-    private static final float MARGIN_T = 48f;  // top margin
-    private static final float MARGIN_B = 42f;  // bottom margin (footer space)
+    private static final float MARGIN_H = 42f;  // horizontal margin
+    private static final float MARGIN_T = 42f;  // top margin
+    private static final float MARGIN_B = 44f;  // bottom margin (footer space)
 
     // ─── CRUD & business logic ────────────────────────────────────────────────
 
@@ -307,17 +306,17 @@ public class PrescriptionService {
     private Table buildMasthead(PdfFont bold, PdfFont regular, PdfFont italic,
                                 Prescription p, LocalDateTime createdAt,
                                 DateTimeFormatter dateFmt) {
-        // 3 columns: brand | spacer | Rx symbol
-        Table t = new Table(UnitValue.createPercentArray(new float[]{ 70, 10, 20 }))
+        // 2 columns: brand + prescription badge
+        Table t = new Table(UnitValue.createPercentArray(new float[]{ 72, 28 }))
                 .useAllAvailableWidth().setMarginBottom(14);
 
         // Brand block
         Cell brand = new Cell().setBorder(Border.NO_BORDER)
                 .setVerticalAlignment(VerticalAlignment.BOTTOM);
-        brand.add(new Paragraph("MediCare")
-                .setFont(bold).setFontSize(28f).setFontColor(ACCENT)
-                .setCharacterSpacing(-0.5f).setMarginBottom(2));
-        brand.add(new Paragraph("Smart Healthcare Management System")
+        brand.add(new Paragraph("MediCare Hospital")
+                .setFont(bold).setFontSize(24f).setFontColor(ACCENT)
+                .setCharacterSpacing(-0.2f).setMarginBottom(2));
+        brand.add(new Paragraph("Comprehensive Clinical Care")
                 .setFont(regular).setFontSize(8f).setFontColor(MUTED).setMarginBottom(8));
         // Doctor line
         String docName = "Dr. " + p.getDoctor().getUser().getName();
@@ -325,21 +324,30 @@ public class PrescriptionService {
         String qual    = p.getDoctor().getQualification()  != null ? "  ·  " + p.getDoctor().getQualification() : "";
         brand.add(new Paragraph(docName + "  ·  " + spec + qual)
                 .setFont(bold).setFontSize(9.5f).setFontColor(INK).setMarginBottom(2));
-        String hospital = p.getDoctor().getHospital() != null ? p.getDoctor().getHospital() + "  ·  " : "";
-        brand.add(new Paragraph(hospital + p.getDoctor().getUser().getEmail())
+        String hospital = nvl(p.getDoctor().getHospital());
+        String email = nvl(p.getDoctor().getUser().getEmail());
+        brand.add(new Paragraph(hospital + "  ·  " + email)
                 .setFont(regular).setFontSize(8f).setFontColor(MUTED));
         t.addCell(brand);
 
-        t.addCell(new Cell().setBorder(Border.NO_BORDER)); // spacer
-
-        // Rx symbol — large, dignified, right-aligned
-        Cell rxCell = new Cell().setBorder(Border.NO_BORDER)
-                .setTextAlignment(TextAlignment.RIGHT)
-                .setVerticalAlignment(VerticalAlignment.BOTTOM);
-        rxCell.add(new Paragraph("℞")
-                .setFont(bold).setFontSize(72f).setFontColor(RX_RED)
-                .setTextAlignment(TextAlignment.RIGHT).setMarginBottom(-8));
-        t.addCell(rxCell);
+        Cell badgeCell = new Cell().setBorder(Border.NO_BORDER)
+                .setVerticalAlignment(VerticalAlignment.MIDDLE)
+                .setTextAlignment(TextAlignment.RIGHT);
+        Div badge = new Div()
+                .setBackgroundColor(GHOST)
+                .setBorder(new SolidBorder(RULE, 0.9f))
+                .setBorderRadius(new BorderRadius(6))
+                .setPaddingTop(8).setPaddingBottom(8)
+                .setPaddingLeft(12).setPaddingRight(12)
+                .setWidth(170);
+        badge.add(new Paragraph("PRESCRIPTION")
+                .setFont(bold).setFontSize(9f).setFontColor(ACCENT)
+                .setTextAlignment(TextAlignment.CENTER).setMargin(0).setMarginBottom(3));
+        badge.add(new Paragraph("℞  " + String.format("RX-%05d", p.getId()))
+                .setFont(bold).setFontSize(10.5f).setFontColor(RX_RED)
+                .setTextAlignment(TextAlignment.CENTER).setMargin(0));
+        badgeCell.add(badge);
+        t.addCell(badgeCell);
 
         return t;
     }
@@ -350,7 +358,8 @@ public class PrescriptionService {
         // Slim ghost-background strip with 3 meta fields
         Table t = new Table(UnitValue.createPercentArray(new float[]{ 34, 33, 33 }))
                 .useAllAvailableWidth().setMarginBottom(20)
-                .setBackgroundColor(GHOST);
+                .setBackgroundColor(GHOST)
+                .setBorder(new SolidBorder(RULE, 0.75f));
 
         DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd MMM yyyy");
 
@@ -366,7 +375,7 @@ public class PrescriptionService {
     }
 
     private Cell metaCell(PdfFont bold, PdfFont regular, String label, String value, TextAlignment align) {
-        Cell c = new Cell().setBorder(Border.NO_BORDER).setPadding(10);
+        Cell c = new Cell().setBorder(Border.NO_BORDER).setPaddingTop(9).setPaddingBottom(9).setPaddingLeft(10).setPaddingRight(10);
         c.add(new Paragraph(label)
                 .setFont(regular).setFontSize(6.5f).setFontColor(MUTED)
                 .setCharacterSpacing(0.6f).setTextAlignment(align).setMarginBottom(3));
@@ -378,7 +387,7 @@ public class PrescriptionService {
 
     // ─── Section: Doctor + Patient cards ──────────────────────────────────────
     private Table buildPartiesSection(PdfFont bold, PdfFont regular, Prescription p) {
-        Table t = new Table(UnitValue.createPercentArray(new float[]{ 50, 4, 46 }))
+        Table t = new Table(UnitValue.createPercentArray(new float[]{ 49, 2, 49 }))
                 .useAllAvailableWidth().setMarginBottom(18);
 
         // Doctor card
@@ -421,7 +430,7 @@ public class PrescriptionService {
                 .setCharacterSpacing(0.8f).setMarginBottom(10));
 
         for (String[] row : rows) {
-            Table rt = new Table(UnitValue.createPercentArray(new float[]{ 38, 62 }))
+            Table rt = new Table(UnitValue.createPercentArray(new float[]{ 36, 64 }))
                     .useAllAvailableWidth().setMarginBottom(5);
             rt.addCell(new Cell().setBorder(Border.NO_BORDER).setPadding(0)
                     .add(new Paragraph(row[0])
@@ -469,7 +478,7 @@ public class PrescriptionService {
         wrapper.addCell(titleCell);
 
         // Medicines table
-        float[] colWidths = { 160, 60, 95, 65, 115 };
+        float[] colWidths = { 180, 62, 88, 68, 112 };
         Table medTable = new Table(UnitValue.createPointArray(colWidths))
                 .useAllAvailableWidth()
                 .setMarginBottom(20);
@@ -477,9 +486,9 @@ public class PrescriptionService {
         // Header row — deep ink background, white text
         for (String h : new String[]{ "Medicine", "Dosage", "Frequency", "Duration", "Instructions" }) {
             Cell hc = new Cell()
-                    .setBackgroundColor(INK)
+                    .setBackgroundColor(ACCENT)
                     .setBorder(Border.NO_BORDER)
-                    .setPaddingTop(9).setPaddingBottom(9)
+                    .setPaddingTop(8).setPaddingBottom(8)
                     .setPaddingLeft(10).setPaddingRight(10);
             hc.add(new Paragraph(h)
                     .setFont(bold).setFontSize(7.5f).setFontColor(WHITE)
@@ -497,7 +506,7 @@ public class PrescriptionService {
                     .setBackgroundColor(rowBg)
                     .setBorder(Border.NO_BORDER)
                     .setBorderBottom(new SolidBorder(RULE, 0.4f))
-                    .setPadding(10).setPaddingLeft(10);
+                    .setPaddingTop(8).setPaddingBottom(8).setPaddingLeft(10).setPaddingRight(10);
             nameCell.add(new Paragraph(med.getMedicineName())
                     .setFont(bold).setFontSize(9f).setFontColor(INK).setMarginBottom(2));
             if (med.getType() != null)
@@ -505,9 +514,9 @@ public class PrescriptionService {
                         .setFont(italic).setFontSize(7f).setFontColor(ACCENT_DIM));
             medTable.addCell(nameCell);
 
-            medTable.addCell(medDataCell(nvl(med.getDosage()),   regular, rowBg, TextAlignment.CENTER));
+            medTable.addCell(medDataCell(nvl(med.getDosage()), regular, rowBg, TextAlignment.CENTER));
             medTable.addCell(medDataCell(nvl(med.getFrequency()), regular, rowBg, TextAlignment.CENTER));
-            medTable.addCell(medDataCell(nvl(med.getDuration()),  regular, rowBg, TextAlignment.CENTER));
+            medTable.addCell(medDataCell(nvl(med.getDuration()), regular, rowBg, TextAlignment.CENTER));
             medTable.addCell(medDataCell(nvl(med.getInstructions()), regular, rowBg, TextAlignment.LEFT));
             alt = !alt;
         }
@@ -529,9 +538,11 @@ public class PrescriptionService {
                 .setBackgroundColor(bg)
                 .setBorder(Border.NO_BORDER)
                 .setBorderBottom(new SolidBorder(RULE, 0.4f))
-                .setPadding(10)
+                .setVerticalAlignment(VerticalAlignment.MIDDLE)
+                .setPaddingTop(8).setPaddingBottom(8).setPaddingLeft(8).setPaddingRight(8)
                 .add(new Paragraph(text)
-                        .setFont(font).setFontSize(8.5f).setFontColor(INK)
+                        .setFont(font).setFontSize(8f).setFontColor(INK)
+                        .setFixedLeading(11f)
                         .setTextAlignment(align));
     }
 
@@ -559,7 +570,7 @@ public class PrescriptionService {
 
         // Follow-up
         Cell fu = new Cell()
-                .setBorder(new SolidBorder(ACCENT, 1.5f))
+                .setBorder(new SolidBorder(ACCENT, 1.2f))
                 .setBackgroundColor(FOLLOW_BG)
                 .setPadding(16)
                 .setVerticalAlignment(VerticalAlignment.MIDDLE)
@@ -621,32 +632,32 @@ public class PrescriptionService {
             try {
                 float w = PageSize.A4.getWidth();
                 float h = PageSize.A4.getHeight();
-                float bh = 4f; // accent bar height at top
+                float bh = 3f; // accent bar height at top
 
                 // Top accent bar
                 canvas.setFillColor(ACCENT)
                         .rectangle(0, h - bh, w, bh).fill();
 
-                // Hairline border — subtle, 3pt inside
+                // Hairline border — subtle
                 canvas.setStrokeColor(RULE).setLineWidth(0.5f)
-                        .rectangle(18, 18, w - 36, h - 36 - bh).stroke();
+                        .rectangle(16, 16, w - 32, h - 32 - bh).stroke();
 
                 // Footer area — slim, clean
-                float footerY = 18f;
+                float footerY = 16f;
                 canvas.setFillColor(GHOST)
-                        .rectangle(18, footerY, w - 36, 18f).fill();
+                        .rectangle(16, footerY, w - 32, 18f).fill();
 
                 canvas.setFillColor(MUTED)
                         .setFontAndSize(regular, 6.5f)
                         .beginText()
-                        .moveText(28, footerY + 6)
+                        .moveText(24, footerY + 6)
                         .showText("MediCare Smart Healthcare  ·  Electronically generated prescription")
                         .endText();
 
                 canvas.setFillColor(MUTED)
                         .setFontAndSize(regular, 6.5f)
                         .beginText()
-                        .moveText(w - 200, footerY + 6)
+                        .moveText(w - 210, footerY + 6)
                         .showText("For queries, contact the prescribing physician")
                         .endText();
 

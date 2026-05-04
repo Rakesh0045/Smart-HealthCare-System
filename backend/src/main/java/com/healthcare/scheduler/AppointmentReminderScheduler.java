@@ -56,17 +56,15 @@ public class AppointmentReminderScheduler {
     }
 
     /**
-     * Runs every hour — auto-completes missed/no-show appointments older than 2
-     * hours.
+     * Runs every minute — auto-marks missed appointments as no-show only after a
+     * grace period.
      */
     @Scheduled(cron = "0 */1 * * * *")
     @Transactional
     public void autoMarkNoShow() {
-        // Find overdue appointments (past end time or previous dates) that are still
-        // scheduled/rescheduled
+        // Mark only appointments that are well past their end time on the same day.
         LocalDate today = LocalDate.now();
-        java.time.LocalTime now = java.time.LocalTime.now();
-        List<Appointment> overdue = appointmentRepo.findOverdueAppointments(today, now);
+        List<Appointment> overdue = appointmentRepo.findOverdueAppointments(today);
 
         for (Appointment a : overdue) {
             try {
