@@ -260,6 +260,13 @@ function DetailModal({ appt, onClose, onReschedule, onCancel, onRate }: {
                 )}
               </>
             )}
+            {/* Pay Now CTA for unpaid scheduled appointments */}
+            {canScheduledAction && appt.paymentStatus !== 'PAID' && (
+              <motion.button style={{ ...M.actionBtn, flex: 1, background: '#054694', color: '#fff', border: 'none', boxShadow: '0 3px 8px rgba(5,70,148,0.18)' }}
+                whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => { onClose(); navigate(`/patient/book?payAppointment=${appt.id}`) }}>
+                <CreditCard size={13} /> Pay Now
+              </motion.button>
+            )}
             {appt.status === 'COMPLETED' && !appt.hasRating && (
               <motion.button style={{ ...M.actionBtn, flex: 1, background: '#fffbeb', color: '#d97706', border: '1.5px solid #fde68a' }}
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={onRate}>

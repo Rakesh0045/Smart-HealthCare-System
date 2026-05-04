@@ -87,15 +87,6 @@ public class PaymentService {
             payment.setStatus(PaymentStatus.PENDING);
             paymentRepo.save(payment);
 
-            byte[] slip = appointmentSlipPdfService.generateSlip(appointment,
-                    "Appointment Slip", "Online payment selected. Payment status is pending until payment is completed.");
-            notificationService.sendAppointmentConfirmation(
-                    appointment.getPatient().getUser(),
-                    appointment.getDoctor().getUser(),
-                    buildAppointmentDetails(appointment) + " | Payment: Online payment pending",
-                    slip,
-                    slip);
-
             return Map.of(
                     "orderId", order.get("id").toString(),
                     "amount", String.valueOf((int) (appointment.getDoctor().getConsultationFee() * 100)),

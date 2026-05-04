@@ -433,7 +433,7 @@ export default function DoctorAppointments() {
             <div style={{ padding: 20 }}>
               {completeModal.paymentStatus !== 'PAID' && (
                 <div style={{ padding: 12, borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
-                  This appointment is marked payment pending. Confirm payment collection before completing it.
+                  This appointment is marked payment pending. Collect payment if needed before completing it.
                 </div>
               )}
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Consultation notes</label>
@@ -447,12 +447,18 @@ export default function DoctorAppointments() {
             </div>
             <div style={{ padding: 16, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
               <button onClick={() => setCompleteModal(null)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
-              {completeModal.paymentStatus !== 'PAID' && (
-                <button disabled={completingId === completeModal.id} onClick={() => handleComplete(false)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', fontWeight: 700, cursor: 'pointer' }}>Complete unpaid</button>
+              {completeModal.paymentStatus !== 'PAID' ? (
+                <>
+                  <button disabled={completingId === completeModal.id} onClick={() => handleComplete(false)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', fontWeight: 700, cursor: 'pointer' }}>Complete unpaid</button>
+                  <button disabled={completingId === completeModal.id} onClick={() => handleComplete(true)} style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>
+                    {completingId === completeModal.id ? 'Saving...' : 'Payment collected'}
+                  </button>
+                </>
+              ) : (
+                <button disabled={completingId === completeModal.id} onClick={() => handleComplete(false)} style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>
+                  {completingId === completeModal.id ? 'Saving...' : 'Complete visit'}
+                </button>
               )}
-              <button disabled={completingId === completeModal.id} onClick={() => handleComplete(completeModal.paymentStatus !== 'PAID')} style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>
-                {completingId === completeModal.id ? 'Saving...' : completeModal.paymentStatus === 'PAID' ? 'Complete' : 'Payment collected'}
-              </button>
             </div>
           </div>
         </div>

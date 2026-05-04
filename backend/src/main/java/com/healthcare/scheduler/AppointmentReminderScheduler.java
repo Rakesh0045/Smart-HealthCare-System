@@ -39,14 +39,12 @@ public class AppointmentReminderScheduler {
 
         for (Appointment appointment : appointments) {
             try {
-                String details = String.format(
-                        "Dr. %s (%s) | %s at %s",
-                        appointment.getDoctor().getUser().getName(),
-                        appointment.getDoctor().getSpecialization(),
-                        appointment.getAppointmentDate(),
-                        appointment.getStartTime());
                 notificationService.sendAppointmentReminder(
-                        appointment.getPatient().getUser(), details);
+                        appointment.getPatient().getUser(),
+                        "Dr. " + appointment.getDoctor().getUser().getName(),
+                        appointment.getAppointmentDate().toString(),
+                        appointment.getStartTime().toString(),
+                        appointment.getEndTime() != null ? appointment.getEndTime().toString() : null);
 
                 appointment.setReminderSent(true);
                 appointmentRepo.save(appointment);

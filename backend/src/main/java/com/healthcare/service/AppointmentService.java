@@ -78,6 +78,15 @@ public class AppointmentService {
 
         appointment = appointmentRepo.save(appointment);
 
+        // generate appointment slip and send confirmation email/notifications
+        byte[] slip = appointmentSlipPdfService.generateSlip(appointment,
+                "Appointment Slip", "Your appointment is confirmed.");
+        notificationService.sendAppointmentConfirmation(
+                appointment.getPatient().getUser(),
+                appointment.getDoctor().getUser(),
+                buildAppointmentDetails(appointment, doctor, patient),
+                slip, slip);
+
         auditLogService.log(userId, "APPOINTMENT_BOOKED", "Appointment",
                 appointment.getId(), "Booked with Dr. " + doctor.getUser().getName());
 
@@ -331,7 +340,8 @@ public class AppointmentService {
     }
 
     private String ordinalSuffix(int day) {
-        if (day >= 11 && day <= 13) return "th";
+        if (day >= 11 && day <= 13)
+            return "th";
         return switch (day % 10) {
             case 1 -> "st";
             case 2 -> "nd";

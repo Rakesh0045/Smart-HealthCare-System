@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
-import { appointmentApi, prescriptionApi } from '../../api'
+import { appointmentApi, prescriptionApi, paymentApi } from '../../api'
+import toast from 'react-hot-toast'
 import {
   Calendar, FileText, Brain, Search,
   Plus, ArrowRight, Clock, CheckCircle2,
@@ -148,6 +149,49 @@ export default function PatientDashboard() {
 
   const buildReschedulePath = (appt: any) =>
     `/patient/book?reschedule=${appt.id}&doctorId=${appt.doctorId}`
+
+  const handlePayNow = async (appointmentId?: number) => {
+    if (!appointmentId) return
+    setLoading(true)
+    try {
+      const { data } = await paymentApi.createOrder(appointmentId)
+      const order = data.data
+      if (order?.status === 'ALREADY_PAID') {
+        toast.success('This appointment is already paid.')
+        navigate('/patient/appointments')
+        return
+      }
+      if (!window.Razorpay) {
+        await new Promise<void>((res, rej) => {
+          const s = document.createElement('script')
+          s.src = 'https://checkout.razorpay.com/v1/checkout.js'
+          s.onload = () => res(); s.onerror = () => rej()
+          document.head.appendChild(s)
+        })
+      }
+      const rzp = new window.Razorpay({
+        key: order.keyId, amount: order.amount, currency: order.currency,
+        name: 'Smart Healthcare', description: `Appointment payment`,
+        order_id: order.orderId,
+        handler: async (response: any) => {
+          await paymentApi.verify({
+            razorpayOrderId: response.razorpay_order_id,
+            razorpayPaymentId: response.razorpay_payment_id,
+            razorpaySignature: response.razorpay_signature,
+            appointmentId,
+          })
+          toast.success('Payment successful! 🎉')
+          navigate('/patient/appointments')
+        },
+        prefill: { name: '', email: '', contact: '' },
+        theme: { color: '#2563eb' },
+      })
+      rzp.open()
+    } catch (err) {
+      console.error(err)
+      toast.error('Failed to initiate payment')
+    } finally { setLoading(false) }
+  }
 
   const isFollowUpOverdue = followUpReminder
     ? new Date(followUpReminder.followUpDate).getTime() < Date.now()
@@ -523,8 +567,8 @@ export default function PatientDashboard() {
               </p>
             </div>
                 <button className="teal-btn-primary" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)', boxShadow: '0 4px 14px rgba(245,158,11,0.25)' }}
-                  onClick={() => navigate(`/patient/book?payAppointment=${pendingPaymentAppointment.id}`)}>
-                  <Calendar size={14} /> View Payment
+                  onClick={() => handlePayNow(pendingPaymentAppointment.id)}>
+                  <Calendar size={14} /> Pay Now
                 </button>
           </div>
         )}
