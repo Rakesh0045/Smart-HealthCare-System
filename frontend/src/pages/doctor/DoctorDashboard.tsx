@@ -27,17 +27,15 @@ function inStatsPeriod(a: { appointmentDate: string }, period: StatsPeriod): boo
   return start >= cutoff.getTime()
 }
 
-const generateAvatarUrl = (name?: string, size: number = 40) => 
+const generateAvatarUrl = (name?: string, size: number = 40) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=0d9488&color=fff&bold=true&size=${size}`
 
-
-
 const STATUS_MAP: Record<string, { label: string; color: string; bg: string }> = {
-  COMPLETED:   { label: 'Completed',   color: '#10b981', bg: 'rgba(16,185,129,0.1)' },
-  CANCELLED:   { label: 'Cancelled',   color: '#ef4444', bg: 'rgba(239,68,68,0.1)' },
-  SCHEDULED:   { label: 'Scheduled',   color: '#0d9488', bg: 'rgba(13,148,136,0.1)' },
-  RESCHEDULED: { label: 'Rescheduled', color: '#f59e0b', bg: 'rgba(245,158,11,0.1)' },
-  NO_SHOW:     { label: 'No Show',     color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
+  COMPLETED:   { label: 'Completed',   color: '#059669', bg: '#ecfdf5' },
+  CANCELLED:   { label: 'Cancelled',   color: '#dc2626', bg: '#fef2f2' },
+  SCHEDULED:   { label: 'Scheduled',   color: '#0d9488', bg: '#f0fdfa' },
+  RESCHEDULED: { label: 'Rescheduled', color: '#d97706', bg: '#fffbeb' },
+  NO_SHOW:     { label: 'No Show',     color: '#6b7280', bg: '#f9fafb' },
 }
 
 const greeting = () => {
@@ -87,12 +85,7 @@ export default function DoctorDashboard() {
         const apptDate = new Date(a.appointmentDate)
         return apptDate.getFullYear() === year && apptDate.getMonth() === month
       }).length
-      months.push({
-        label: d.toLocaleDateString('en-IN', { month: 'short' }),
-        year,
-        count,
-        key: `${year}-${month}`,
-      })
+      months.push({ label: d.toLocaleDateString('en-IN', { month: 'short' }), year, count, key: `${year}-${month}` })
     }
     return months
   }, [appointments])
@@ -106,9 +99,7 @@ export default function DoctorDashboard() {
 
   const uniquePatientCount = useMemo(() => {
     const ids = new Set<number>()
-    for (const a of appointments) {
-      if (a.patientId != null) ids.add(Number(a.patientId))
-    }
+    for (const a of appointments) { if (a.patientId != null) ids.add(Number(a.patientId)) }
     return ids.size
   }, [appointments])
 
@@ -161,10 +152,10 @@ export default function DoctorDashboard() {
       cur += deg
       parts.push(`${color} ${start}deg ${cur}deg`)
     }
-    seg(completed, '#10b981')
+    seg(completed, '#059669')
     seg(scheduled, '#0d9488')
-    seg(cancelled, '#ef4444')
-    seg(noShow, '#64748b')
+    seg(cancelled, '#dc2626')
+    seg(noShow, '#9ca3af')
     return `conic-gradient(${parts.join(', ')})`
   }, [statusSlices])
 
@@ -174,7 +165,6 @@ export default function DoctorDashboard() {
   )
 
   const avgPaidInScope = paidInScopeCount > 0 ? Math.round(revenueScoped / paidInScopeCount) : 0
-
   const periodLabel = statsPeriod === 'all' ? 'All time' : statsPeriod === '30d' ? 'Last 30 days' : 'Last 90 days'
 
   const todayScheduled = todayAppointments.filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED').length
@@ -195,11 +185,8 @@ export default function DoctorDashboard() {
       toast.success('Visit marked completed')
       setCompleteModal(null)
       load()
-    } catch {
-      /* error toast from API interceptor */
-    } finally {
-      setCompletingId(null)
-    }
+    } catch { /* error toast from API interceptor */ }
+    finally { setCompletingId(null) }
   }
 
   const handleNoShow = async (id: number) => {
@@ -208,9 +195,7 @@ export default function DoctorDashboard() {
       await appointmentApi.markNoShow(id)
       toast.success('Marked as no-show')
       load()
-    } catch {
-      /* error toast from API interceptor */
-    }
+    } catch { /* error toast from API interceptor */ }
   }
 
   const filteredToday = todayAppointments.filter(a => {
@@ -218,235 +203,232 @@ export default function DoctorDashboard() {
     const matchesSearch = !q || a.patientName?.toLowerCase().includes(q)
     const matchesStatus =
       tableStatusFilter === 'ALL' ||
-      (tableStatusFilter === 'SCHEDULED' &&
-        (a.status === 'SCHEDULED' || a.status === 'RESCHEDULED')) ||
-      (tableStatusFilter !== 'ALL' &&
-        tableStatusFilter !== 'SCHEDULED' &&
-        a.status === tableStatusFilter)
+      (tableStatusFilter === 'SCHEDULED' && (a.status === 'SCHEDULED' || a.status === 'RESCHEDULED')) ||
+      (tableStatusFilter !== 'ALL' && tableStatusFilter !== 'SCHEDULED' && a.status === tableStatusFilter)
     return matchesSearch && matchesStatus
   })
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', fontFamily: "'Sora', sans-serif" }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 48, height: 48, border: '3px solid #e6f7f5', borderTopColor: '#0d9488', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-        <p style={{ color: '#64748b', fontSize: 14 }}>Loading dashboard...</p>
+        <div style={{ width: 40, height: 40, border: '2.5px solid #f0fdfa', borderTopColor: '#0d9488', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
+        <p style={{ color: '#94a3b8', fontSize: 13, fontWeight: 500 }}>Loading dashboard…</p>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); }}`}</style>
     </div>
   )
 
+  /* ─── shared tokens ─── */
+  const card: React.CSSProperties = {
+    background: '#fff',
+    border: '1px solid #f1f5f9',
+    borderRadius: 16,
+    boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+  }
+  const label11: React.CSSProperties = {
+    fontSize: 11, fontWeight: 700, letterSpacing: '0.07em',
+    textTransform: 'uppercase', color: '#94a3b8',
+  }
+  const sectionTitle: React.CSSProperties = {
+    fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0,
+  }
+  const sectionSub: React.CSSProperties = {
+    fontSize: 12, color: '#94a3b8', marginTop: 2,
+  }
+
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
-        .pv-dash { font-family: 'Sora', sans-serif; }
-        .pv-mono { font-family: 'JetBrains Mono', monospace; }
-
-        @keyframes fadeSlide {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+        .pv { font-family: 'Sora', sans-serif; color: #0f172a; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
         @keyframes spin { to { transform: rotate(360deg); } }
-        @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.6;transform:scale(0.8)} }
+        @keyframes up { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+        @keyframes pdot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.75)} }
 
-        .pv-card {
-          background: #ffffff;
-          border: 1px solid #f0fdf4;
-          border-radius: 16px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(13,148,136,0.04);
-          animation: fadeSlide 0.5s ease both;
+        .fade-up { animation: up .45s ease both; }
+
+        .stat-pill {
+          display: flex; align-items: center; gap: 12px;
+          padding: 12px 14px; border-radius: 12px;
+          transition: transform .15s;
         }
-        .pv-stat-card {
-          border-radius: 20px;
-          padding: 22px 24px;
-          position: relative;
-          overflow: hidden;
-          animation: fadeSlide 0.5s ease both;
-          cursor: default;
-          transition: transform 0.2s, box-shadow 0.2s;
-        }
-        .pv-stat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0,0,0,0.1); }
-        .pv-stat-card::before {
-          content: ''; position: absolute; top: -30px; right: -30px;
-          width: 120px; height: 120px; border-radius: 50%;
-          background: rgba(255,255,255,0.08);
-        }
+        .stat-pill:hover { transform: translateX(3px); }
 
         .appt-row {
-          display: flex; align-items: center; gap: 12px;
-          padding: 12px 16px; border-radius: 14px;
-          border: 1px solid #f0fdf4; background: #fafffe;
-          transition: all 0.18s; cursor: default;
-          animation: fadeSlide 0.4s ease both;
+          display: grid;
+          grid-template-columns: 32px 1fr 90px 68px 110px 180px;
+          gap: 10px; align-items: center;
+          padding: 11px 16px; border-radius: 12px;
+          border: 1px solid transparent;
+          transition: background .15s, border-color .15s;
         }
-        .appt-row:hover { border-color: #5eead4; background: #f0fdfa; transform: translateX(4px); }
+        .appt-row:hover { background: #f8fffe; border-color: #ccfbf1; }
 
-        .complete-btn {
-          padding: 6px 14px; border-radius: 8px;
-          background: linear-gradient(135deg, #0d9488, #0891b2);
-          color: white; border: none; font-size: 11px; font-weight: 700;
-          font-family: 'Sora', sans-serif;
-          cursor: pointer; letter-spacing: 0.02em;
-          transition: all 0.18s;
+        .action-btn {
+          display: inline-flex; align-items: center; gap: 4px;
+          padding: 5px 12px; border-radius: 7px;
+          border: none; font-size: 11px; font-weight: 700;
+          font-family: 'Sora', sans-serif; cursor: pointer;
+          transition: opacity .15s, transform .15s;
+          white-space: nowrap;
         }
-        .complete-btn:hover { opacity: 0.85; transform: scale(1.04); }
+        .action-btn:hover { opacity: .85; transform: scale(1.03); }
 
-        .doc-card {
-          background: white; border-radius: 14px;
-          border: 1px solid #f0fdf4; padding: 14px;
-          display: flex; align-items: center; gap: 12px;
-          transition: all 0.2s; cursor: pointer;
-          animation: fadeSlide 0.5s ease both;
+        .period-btn {
+          padding: 6px 12px; border-radius: 8px;
+          font-size: 12px; font-weight: 600;
+          cursor: pointer; font-family: 'Sora', sans-serif;
+          transition: all .15s;
         }
-        .doc-card:hover { border-color: #5eead4; box-shadow: 0 4px 20px rgba(13,148,136,0.12); transform: translateY(-2px); }
 
         .search-input {
-          width: 100%; padding: 10px 16px 10px 42px;
-          border-radius: 12px; border: 1.5px solid #e6f7f5;
-          background: #fafffe; font-family: 'Sora', sans-serif;
-          font-size: 13px; color: #0f172a; outline: none;
-          transition: all 0.2s;
+          padding: 8px 12px; border-radius: 9px;
+          border: 1.5px solid #e2e8f0; background: #fafeff;
+          font-family: 'Sora', sans-serif; font-size: 12.5px;
+          color: #0f172a; outline: none; width: 180px;
+          transition: border-color .15s, box-shadow .15s;
         }
-        .search-input:focus { border-color: #0d9488; background: #fff; box-shadow: 0 0 0 3px rgba(13,148,136,0.08); }
-        .search-input::placeholder { color: #94a3b8; }
+        .search-input:focus {
+          border-color: #0d9488;
+          box-shadow: 0 0 0 3px rgba(13,148,136,.08);
+        }
+        .search-input::placeholder { color: #cbd5e1; }
 
-        .notif-item {
-          display: flex; gap: 10px; padding: 10px 0;
-          border-bottom: 1px solid #f0fdf4; animation: fadeSlide 0.4s ease both;
+        .status-select {
+          padding: 8px 12px; border-radius: 9px;
+          border: 1.5px solid #e2e8f0; background: #fff;
+          font-family: 'Sora', sans-serif; font-size: 12.5px;
+          font-weight: 600; color: #475569; cursor: pointer;
+          outline: none;
         }
-        .notif-item:last-child { border-bottom: none; }
 
-        .bar-segment {
-          background: linear-gradient(to top, #0d9488, #5eead4);
-          border-radius: 4px 4px 0 0; width: 18px;
-          transition: height 0.6s ease;
+        .notif-row {
+          display: flex; gap: 10px; padding: 11px 0;
+          border-bottom: 1px solid #f8fafc;
         }
-        .online-pulse {
-          width: 8px; height: 8px; border-radius: 50%; background: #10b981;
-          animation: pulse-dot 2s infinite;
+        .notif-row:last-child { border-bottom: none; }
+
+        .online-dot {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: #10b981; animation: pdot 2s infinite;
+          display: inline-block;
         }
       `}</style>
 
-      <div className="pv-dash" style={{ maxWidth: 1300, margin: '0 auto', paddingBottom: 40 }}>
+      <div className="pv" style={{ maxWidth: 1280, margin: '0 auto', paddingBottom: 48 }}>
 
-        {/* TOP HEADER */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, flexWrap: 'wrap', gap: 16 }}>
+        {/* ── HEADER ── */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <p style={{ fontSize: 12, fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>
-              Doctor Portal
-            </p>
-            <h1 style={{ fontSize: 28, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.2 }}>
+            <p style={{ ...label11, color: '#0d9488', marginBottom: 6 }}>Doctor Portal</p>
+            <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0, lineHeight: 1.25 }}>
               {greeting()}, <span style={{ color: '#0d9488' }}>Dr. {user?.name?.split(' ')[0]}</span> 👋
             </h1>
-            <p style={{ fontSize: 13, color: '#64748b', marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="online-pulse" />
+            <p style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 6, display: 'flex', alignItems: 'center', gap: 7 }}>
+              <span className="online-dot" />
               {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
         </div>
 
-        {/* STAT CARDS — metrics are factual (no fabricated trends) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 24 }}>
+        {/* ── TOP STAT CARDS ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14, marginBottom: 20 }}>
           {[
             {
-              label: 'Unique patients',
+              label: 'Unique Patients',
               value: uniquePatientCount,
+              sub: `${appointments.length} total visits`,
               icon: Users,
-              grad: 'linear-gradient(135deg, #1e40af, #3b82f6)',
-              change: `${appointments.length} total visit${appointments.length !== 1 ? 's' : ''}`,
-              changeLabel: 'Distinct patient profiles',
+              accent: '#2563eb',
+              bg: 'linear-gradient(135deg, #1d4ed8 0%, #3b82f6 100%)',
             },
             {
-              label: "Today's appointments",
+              label: "Today's Appointments",
               value: todayAppointments.length,
+              sub: new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }),
               icon: Calendar,
-              grad: 'linear-gradient(135deg, #be185d, #ec4899)',
-              change: new Date().toLocaleDateString('en-IN', { weekday: 'short', month: 'short', day: 'numeric' }),
-              changeLabel: 'On your calendar today',
+              accent: '#db2777',
+              bg: 'linear-gradient(135deg, #be185d 0%, #ec4899 100%)',
             },
             {
-              label: 'Pending prescriptions',
+              label: 'Pending Prescriptions',
               value: pendingRx,
+              sub: 'Completed without Rx',
               icon: FileText,
-              grad: 'linear-gradient(135deg, #c2410c, #f97316)',
-              change: 'Completed visits',
-              changeLabel: 'Without a prescription yet',
+              accent: '#ea580c',
+              bg: 'linear-gradient(135deg, #c2410c 0%, #f97316 100%)',
             },
             {
-              label: statsPeriod === 'all' ? 'Paid revenue (all time)' : `Paid revenue (${periodLabel.toLowerCase()})`,
+              label: statsPeriod === 'all' ? 'Revenue (All time)' : `Revenue (${periodLabel})`,
               value: `₹${(statsPeriod === 'all' ? revenueLifetime : revenueScoped).toLocaleString('en-IN')}`,
+              sub: statsPeriod !== 'all' ? `All-time: ₹${revenueLifetime.toLocaleString('en-IN')}` : 'Paid consultations',
               icon: DollarSign,
-              grad: 'linear-gradient(135deg, #15803d, #22c55e)',
-              change: statsPeriod === 'all' ? 'Sum of paid consultation fees' : `${paidInScopeCount} paid in range`,
-              changeLabel: statsPeriod !== 'all' ? `All-time: ₹${revenueLifetime.toLocaleString('en-IN')}` : 'Online + clinic-collected',
+              accent: '#16a34a',
+              bg: 'linear-gradient(135deg, #15803d 0%, #22c55e 100%)',
             },
           ].map((s, i) => (
-            <div key={s.label} className="pv-stat-card" style={{ background: s.grad, animationDelay: `${i * 0.08}s` }}>
+            <div key={s.label} className="fade-up" style={{ background: s.bg, borderRadius: 16, padding: '20px 22px', position: 'relative', overflow: 'hidden', animationDelay: `${i * 0.07}s` }}>
+              {/* decorative circle */}
+              <div style={{ position: 'absolute', top: -24, right: -24, width: 96, height: 96, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <s.icon style={{ width: 20, height: 20, color: 'white' }} />
-                  </div>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                  <s.icon size={17} color="white" />
                 </div>
-                <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>{s.label}</p>
-                <p style={{ fontSize: 32, fontWeight: 700, color: 'white', margin: '0 0 10px', lineHeight: 1 }}>{s.value}</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>{s.change}</span>
-                  {s.changeLabel ? <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.65)' }}>{s.changeLabel}</span> : null}
-                </div>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,.7)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '0 0 5px' }}>{s.label}</p>
+                <p style={{ fontSize: 30, fontWeight: 700, color: 'white', margin: '0 0 8px', lineHeight: 1 }}>{s.value}</p>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,.65)', margin: 0 }}>{s.sub}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="pv-card" style={{ padding: 18, marginBottom: 24, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, animationDelay: '0.16s' }}>
+        {/* ── TODAY'S MINI STATS ── */}
+        <div className="fade-up" style={{ ...card, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, marginBottom: 24, animationDelay: '.15s', overflow: 'hidden' }}>
           {[
-            { label: 'Today scheduled', value: todayScheduled, color: '#0d9488', bg: '#f0fdfa', icon: Calendar },
-            { label: 'Pending payment', value: todayPendingPayment, color: '#d97706', bg: '#fffbeb', icon: DollarSign },
-            { label: 'Pending prescription', value: todayPendingRx, color: '#7c3aed', bg: '#f5f3ff', icon: FileText },
-            { label: 'No-show today', value: todayNoShow, color: '#475569', bg: '#f8fafc', icon: UserX },
-          ].map(item => (
-            <div key={item.label} style={{ padding: '12px 14px', borderRadius: 12, background: item.bg, border: `1px solid ${item.color}22`, display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 34, height: 34, borderRadius: 10, background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.color }}>
+            { label: 'Scheduled today',      value: todayScheduled,      color: '#0d9488', bg: '#f0fdfa', icon: Calendar },
+            { label: 'Pending payment',       value: todayPendingPayment, color: '#d97706', bg: '#fffbeb', icon: DollarSign },
+            { label: 'Pending prescription',  value: todayPendingRx,      color: '#7c3aed', bg: '#f5f3ff', icon: FileText },
+            { label: 'No-show today',         value: todayNoShow,         color: '#64748b', bg: '#f8fafc', icon: UserX },
+          ].map((item, i) => (
+            <div key={item.label} style={{ padding: '18px 20px', background: item.bg, borderRight: i < 3 ? '1px solid #f1f5f9' : 'none', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: 'white', border: `1px solid ${item.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: item.color, flexShrink: 0 }}>
                 <item.icon size={16} />
               </div>
               <div>
-                <p className="pv-mono" style={{ fontSize: 20, fontWeight: 800, color: item.color, margin: 0, lineHeight: 1 }}>{item.value}</p>
-                <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', margin: '3px 0 0' }}>{item.label}</p>
+                <p className="mono" style={{ fontSize: 22, fontWeight: 700, color: item.color, margin: 0, lineHeight: 1 }}>{item.value}</p>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#64748b', margin: '4px 0 0' }}>{item.label}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* MAIN GRID */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+        {/* ── MAIN GRID ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
 
           {/* LEFT COLUMN */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-            {/* APPOINTMENT OVERVIEW WITH GRAPHS */}
-            <div className="pv-card" style={{ padding: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            {/* APPOINTMENT OVERVIEW */}
+            <div className="fade-up" style={{ ...card, padding: 24, animationDelay: '.2s' }}>
+
+              {/* Header row */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22, flexWrap: 'wrap', gap: 10 }}>
                 <div>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>Appointment Overview</h2>
-                  <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Track and manage your patient appointments</p>
+                  <p style={sectionTitle}>Appointment Overview</p>
+                  <p style={sectionSub}>Track performance across time ranges</p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 6 }}>
                   {(['30d', '90d', 'all'] as StatsPeriod[]).map(p => (
                     <button
                       key={p}
                       type="button"
                       onClick={() => setStatsPeriod(p)}
+                      className="period-btn"
                       style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        padding: '7px 12px', borderRadius: 8,
-                        border: statsPeriod === p ? '1.5px solid #0d9488' : '1.5px solid #e6f7f5',
+                        border: statsPeriod === p ? '1.5px solid #0d9488' : '1.5px solid #e2e8f0',
                         background: statsPeriod === p ? '#f0fdfa' : 'white',
-                        fontSize: 12, fontWeight: 600,
                         color: statsPeriod === p ? '#0f766e' : '#64748b',
-                        cursor: 'pointer', fontFamily: 'Sora, sans-serif',
                       }}
                     >
                       {p === '30d' ? '30 days' : p === '90d' ? '90 days' : 'All time'}
@@ -455,85 +437,81 @@ export default function DoctorDashboard() {
                 </div>
               </div>
 
-              {/* Main Stats Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-                <div style={{ padding: '16px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #f0fdfa, #e6f7f5)', border: '1px solid #ccfbf1' }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 8px' }}>Scheduled / upcoming</p>
-                  <p style={{ fontSize: 36, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', lineHeight: 1 }}>{scheduledScoped}</p>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{periodLabel} · scheduled or rescheduled</span>
+              {/* Scheduled / Completed pair */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 22 }}>
+                <div style={{ padding: '18px 20px', borderRadius: 12, background: '#f0fdfa', border: '1px solid #ccfbf1' }}>
+                  <p style={{ ...label11, color: '#0d9488', marginBottom: 8 }}>Scheduled / Upcoming</p>
+                  <p style={{ fontSize: 34, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', lineHeight: 1 }}>{scheduledScoped}</p>
+                  <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>{periodLabel} · scheduled or rescheduled</p>
                 </div>
-                <div style={{ padding: '16px 20px', borderRadius: 14, background: 'linear-gradient(135deg, #f5f3ff, #ede9fe)', border: '1px solid #ddd6fe' }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 8px' }}>Completed visits</p>
-                  <p style={{ fontSize: 36, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', lineHeight: 1 }}>{completedScoped}</p>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#64748b' }}>{periodLabel}</span>
+                <div style={{ padding: '18px 20px', borderRadius: 12, background: '#f5f3ff', border: '1px solid #ede9fe' }}>
+                  <p style={{ ...label11, color: '#7c3aed', marginBottom: 8 }}>Completed Visits</p>
+                  <p style={{ fontSize: 34, fontWeight: 700, color: '#0f172a', margin: '0 0 4px', lineHeight: 1 }}>{completedScoped}</p>
+                  <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>{periodLabel}</p>
                 </div>
               </div>
 
-              {/* Status Breakdown Pie Chart */}
-              <div style={{ marginBottom: 24, padding: '16px', borderRadius: 12, background: '#fafffe', border: '1px solid #f0fdf4' }}>
-                <p style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', marginBottom: 12, margin: '0 0 12px' }}>
-                  Status mix ({periodLabel.toLowerCase()})
+              {/* Status donut */}
+              <div style={{ padding: '18px 20px', borderRadius: 12, background: '#fafffe', border: '1px solid #f1f5f9', marginBottom: 22 }}>
+                <p style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', margin: '0 0 16px' }}>
+                  Status breakdown · <span style={{ color: '#94a3b8', fontWeight: 500 }}>{periodLabel.toLowerCase()}</span>
                 </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
-                  <div style={{ position: 'relative', width: 120, height: 120, borderRadius: '50%', background: pieGradient, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: 100, height: 100, borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap' }}>
+                  <div style={{ width: 110, height: 110, borderRadius: '50%', background: pieGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 76, height: 76, borderRadius: '50%', background: '#fafffe', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <div style={{ textAlign: 'center' }}>
-                        <p style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: 0 }}>{statusSlices.n}</p>
-                        <p style={{ fontSize: 10, color: '#94a3b8', margin: 0 }}>In range</p>
+                        <p style={{ fontSize: 17, fontWeight: 700, color: '#0f172a', margin: 0 }}>{statusSlices.n}</p>
+                        <p style={{ fontSize: 9, color: '#94a3b8', margin: 0, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em' }}>total</p>
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, minWidth: 200 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 28px', flex: 1, minWidth: 180 }}>
                     {[
-                      { label: 'Completed', value: statusSlices.completed, color: '#10b981' },
+                      { label: 'Completed', value: statusSlices.completed, color: '#059669' },
                       { label: 'Scheduled', value: statusSlices.scheduled, color: '#0d9488' },
-                      { label: 'Cancelled', value: statusSlices.cancelled, color: '#ef4444' },
-                      { label: 'No-show', value: statusSlices.noShow, color: '#64748b' },
+                      { label: 'Cancelled', value: statusSlices.cancelled, color: '#dc2626' },
+                      { label: 'No-show',   value: statusSlices.noShow,   color: '#9ca3af' },
                     ].map(item => (
                       <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 10, height: 10, borderRadius: 3, background: item.color, flexShrink: 0 }} />
+                        <div style={{ width: 8, height: 8, borderRadius: 2, background: item.color, flexShrink: 0 }} />
                         <span style={{ fontSize: 12, color: '#64748b', flex: 1 }}>{item.label}</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: item.color }}>{item.value}</span>
+                        <span className="mono" style={{ fontSize: 12, fontWeight: 700, color: item.color }}>{item.value}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               </div>
 
-              {/* Monthly Completed Chart */}
-              <div style={{ marginTop: 24, paddingTop: 24, borderTop: '1px solid #f0fdf4' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <p style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', margin: 0 }}>Monthly Completed Appointments</p>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', background: '#f8fafc', padding: '3px 10px', borderRadius: 20, border: '1px solid #f0fdf4' }}>
-                    {monthlyChartData[0]?.year} – {monthlyChartData[11]?.year}
+              {/* Monthly bar chart */}
+              <div style={{ paddingTop: 20, borderTop: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', margin: 0 }}>Monthly Completed</p>
+                  <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>
+                    {monthlyChartData[0]?.year}–{monthlyChartData[11]?.year}
                   </span>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 110, justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 5, height: 100 }}>
                   {monthlyChartData.map((m, i) => {
                     const pct = maxMonthCount > 0 ? Math.max((m.count / maxMonthCount) * 100, m.count > 0 ? 8 : 0) : 0
                     const isCurrent = i === 11
                     return (
-                      <div key={m.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                        <div style={{ position: 'relative', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          {m.count > 0 && <span style={{ fontSize: 9, fontWeight: 700, color: isCurrent ? '#1e40af' : '#0d9488', marginBottom: 3 }}>{m.count}</span>}
-                          <div style={{
-                            height: `${pct}%`, width: '100%', minHeight: pct > 0 ? 10 : 4,
-                            borderRadius: '4px 4px 0 0',
-                            background: isCurrent
-                              ? 'linear-gradient(to top, #1e40af, #60a5fa)'
-                              : m.count > 0
-                                ? 'linear-gradient(to top, #0d9488, #5eead4)'
-                                : '#f0fdf4',
-                            border: m.count === 0 ? '1px solid #e6f7f5' : 'none',
-                            transition: 'height 0.6s ease',
-                          }} />
-                        </div>
-                        <div style={{ textAlign: 'center' }}>
-                          <span style={{ fontSize: 9, color: isCurrent ? '#1e40af' : '#94a3b8', fontWeight: isCurrent ? 700 : 600, display: 'block' }}>{m.label}</span>
-                          {(i === 0 || m.year !== monthlyChartData[i-1]?.year) && (
-                            <span style={{ fontSize: 8, color: '#cbd5e1', fontWeight: 500 }}>{m.year}</span>
-                          )}
-                        </div>
+                      <div key={m.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, height: '100%', justifyContent: 'flex-end' }}>
+                        {m.count > 0 && (
+                          <span style={{ fontSize: 9, fontWeight: 700, color: isCurrent ? '#2563eb' : '#0d9488' }}>{m.count}</span>
+                        )}
+                        <div style={{
+                          height: `${pct}%`, width: '100%', minHeight: pct > 0 ? 6 : 3,
+                          borderRadius: '3px 3px 0 0',
+                          background: isCurrent
+                            ? 'linear-gradient(to top, #1d4ed8, #60a5fa)'
+                            : m.count > 0
+                              ? 'linear-gradient(to top, #0d9488, #5eead4)'
+                              : '#f1f5f9',
+                          transition: 'height .5s ease',
+                        }} />
+                        <span style={{ fontSize: 9, color: isCurrent ? '#2563eb' : '#94a3b8', fontWeight: isCurrent ? 700 : 500 }}>
+                          {m.label}
+                        </span>
                       </div>
                     )
                   })}
@@ -542,11 +520,11 @@ export default function DoctorDashboard() {
             </div>
 
             {/* TODAY'S APPOINTMENTS TABLE */}
-            <div className="pv-card" style={{ padding: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <div className="fade-up" style={{ ...card, padding: 24, animationDelay: '.27s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 10 }}>
                 <div>
-                  <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>Recent Patient Appointment</h2>
-                  <p style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Keep track of your patient data and appointments</p>
+                  <p style={sectionTitle}>Today's Appointments</p>
+                  <p style={sectionSub}>Manage and act on today's patient schedule</p>
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                   <input
@@ -555,16 +533,11 @@ export default function DoctorDashboard() {
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     className="search-input"
-                    style={{ maxWidth: 200, minWidth: 140, paddingLeft: 12 }}
                   />
                   <select
                     value={tableStatusFilter}
                     onChange={e => setTableStatusFilter(e.target.value)}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 8,
-                      border: '1.5px solid #e6f7f5', background: 'white', fontSize: 12, fontWeight: 600,
-                      color: '#475569', cursor: 'pointer', fontFamily: 'Sora, sans-serif',
-                    }}
+                    className="status-select"
                   >
                     <option value="ALL">All statuses</option>
                     <option value="SCHEDULED">Scheduled + rescheduled</option>
@@ -572,74 +545,75 @@ export default function DoctorDashboard() {
                     <option value="NO_SHOW">No-show</option>
                     <option value="CANCELLED">Cancelled</option>
                   </select>
-                  <button onClick={() => navigate('/doctor/appointments')} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 14px', borderRadius: 8, background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
-                    View all <ArrowUpRight style={{ width: 13, height: 13 }} />
+                  <button
+                    onClick={() => navigate('/doctor/appointments')}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 9, background: '#0d9488', color: 'white', border: 'none', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}
+                  >
+                    View all <ArrowUpRight size={13} />
                   </button>
                 </div>
               </div>
 
-              {/* Table header */}
-              <div style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 1fr 180px', gap: 12, padding: '8px 16px', marginBottom: 8 }}>
-                {['#', 'Patient Name', 'Date', 'Time', 'Status', 'Action'].map(h => (
-                  <span key={h} style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{h}</span>
+              {/* Column headers */}
+              <div className="appt-row" style={{ padding: '6px 16px', marginBottom: 4, background: 'transparent', border: 'none' }}>
+                {['#', 'Patient', 'Date', 'Time', 'Status', 'Actions'].map(h => (
+                  <span key={h} style={label11}>{h}</span>
                 ))}
               </div>
 
               {/* Rows */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {filteredToday.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8' }}>
-                    <Calendar style={{ width: 40, height: 40, margin: '0 auto 12px', opacity: 0.3 }} />
-                    <p style={{ fontSize: 14, fontWeight: 600 }}>No appointments today</p>
+                    <Calendar size={36} style={{ margin: '0 auto 10px', opacity: .3 }} />
+                    <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>No appointments today</p>
                   </div>
                 ) : filteredToday.slice(0, 6).map((a, idx) => {
                   const st = STATUS_MAP[a.status] || STATUS_MAP.SCHEDULED
                   return (
-                    <div key={a.id} className="appt-row" style={{ display: 'grid', gridTemplateColumns: '40px 1fr 1fr 1fr 1fr 180px', gap: 12, animationDelay: `${idx * 0.05}s` }}>
-                      <span className="pv-mono" style={{ fontSize: 12, color: '#94a3b8', alignSelf: 'center' }}>
+                    <div key={a.id} className="appt-row">
+                      <span className="mono" style={{ fontSize: 11, color: '#cbd5e1' }}>
                         {String(idx + 1).padStart(2, '0')}
                       </span>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                         <img
-                          src={generateAvatarUrl(a.patientName, 34)}
+                          src={generateAvatarUrl(a.patientName, 32)}
                           alt={a.patientName}
-                          style={{ width: 34, height: 34, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }}
+                          style={{ width: 32, height: 32, borderRadius: 9, objectFit: 'cover', flexShrink: 0 }}
                         />
-                        <div>
-                          <p style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', margin: 0, lineHeight: 1.3 }}>{a.patientName}</p>
-                          <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>{a.isFirstVisit ? 'New Patient' : 'Returning'}</p>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{ fontSize: 12.5, fontWeight: 600, color: '#0f172a', margin: 0, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.patientName}</p>
+                          <p style={{ fontSize: 10.5, color: '#94a3b8', margin: 0 }}>{a.isFirstVisit ? 'New' : 'Returning'}</p>
                         </div>
                       </div>
-                      <span style={{ fontSize: 12, color: '#64748b', alignSelf: 'center' }}>
+                      <span style={{ fontSize: 12, color: '#64748b' }}>
                         {new Date(a.appointmentDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                       </span>
-                      <span className="pv-mono" style={{ fontSize: 12, color: '#64748b', alignSelf: 'center' }}>
+                      <span className="mono" style={{ fontSize: 12, color: '#64748b' }}>
                         {a.startTime?.slice(0, 5)}
                       </span>
-                      <div style={{ alignSelf: 'center' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, padding: '4px 10px', borderRadius: 20 }}>
-                          {st.label}
-                        </span>
-                      </div>
-                      <div style={{ display: 'flex', gap: 6, alignSelf: 'center' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, padding: '4px 10px', borderRadius: 20, display: 'inline-block', whiteSpace: 'nowrap' }}>
+                        {st.label}
+                      </span>
+                      <div style={{ display: 'flex', gap: 5 }}>
                         {(a.status === 'SCHEDULED' || a.status === 'RESCHEDULED') && (
                           <>
-                            <button onClick={() => openCompleteModal(a)} className="complete-btn">
+                            <button onClick={() => openCompleteModal(a)} className="action-btn" style={{ background: '#0d9488', color: 'white' }}>
                               Complete
                             </button>
-                            <button onClick={() => handleNoShow(a.id)} className="complete-btn" style={{ background: '#475569', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                              <UserX size={12} /> No-show
+                            <button onClick={() => handleNoShow(a.id)} className="action-btn" style={{ background: '#64748b', color: 'white' }}>
+                              <UserX size={11} /> No-show
                             </button>
                           </>
                         )}
                         {a.status === 'COMPLETED' && !a.hasPrescription && (
-                          <button onClick={() => navigate('/doctor/prescriptions/new')} className="complete-btn" style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
+                          <button onClick={() => navigate('/doctor/prescriptions/new')} className="action-btn" style={{ background: '#7c3aed', color: 'white' }}>
                             Add Rx
                           </button>
                         )}
                         {a.status === 'COMPLETED' && a.hasPrescription && (
-                          <span style={{ fontSize: 11, color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <CheckCircle style={{ width: 13, height: 13 }} /> Done
+                          <span style={{ fontSize: 11, color: '#059669', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <CheckCircle size={13} /> Done
                           </span>
                         )}
                       </div>
@@ -653,48 +627,49 @@ export default function DoctorDashboard() {
           {/* RIGHT COLUMN */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-
-
-            {/* QUICK STATS PILLS */}
-            <div className="pv-card" style={{ padding: 22 }}>
-              <h2 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 14px' }}>Quick Stats</h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* QUICK STATS */}
+            <div className="fade-up" style={{ ...card, padding: 22, animationDelay: '.22s' }}>
+              <p style={{ ...sectionTitle, marginBottom: 16 }}>Quick Stats</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {[
                   { label: 'Avg paid (in range)', value: paidInScopeCount > 0 ? `₹${avgPaidInScope.toLocaleString('en-IN')}` : '—', color: '#0d9488', bg: '#f0fdfa', icon: DollarSign },
-                  { label: 'Pending prescriptions', value: pendingRx, color: '#f59e0b', bg: '#fffbeb', icon: FileText },
-                  { label: 'Completed (in range)', value: completedScoped, color: '#10b981', bg: '#f0fdf4', icon: CheckCircle },
-                  { label: 'Scheduled (in range)', value: scheduledScoped, color: '#7c3aed', bg: '#f5f3ff', icon: Clock },
+                  { label: 'Pending prescriptions', value: pendingRx,        color: '#d97706', bg: '#fffbeb', icon: FileText },
+                  { label: 'Completed (in range)',  value: completedScoped,  color: '#059669', bg: '#f0fdf4', icon: CheckCircle },
+                  { label: 'Scheduled (in range)',  value: scheduledScoped,  color: '#7c3aed', bg: '#f5f3ff', icon: Clock },
                 ].map(item => (
-                  <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, background: item.bg, border: `1px solid ${item.color}20` }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 10, background: `${item.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <item.icon style={{ width: 16, height: 16, color: item.color }} />
+                  <div key={item.label} className="stat-pill" style={{ background: item.bg, border: `1px solid ${item.color}18` }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'white', border: `1px solid ${item.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: item.color }}>
+                      <item.icon size={15} />
                     </div>
                     <span style={{ flex: 1, fontSize: 12, color: '#64748b', fontWeight: 500 }}>{item.label}</span>
-                    <span className="pv-mono" style={{ fontSize: 16, fontWeight: 700, color: item.color }}>{item.value}</span>
+                    <span className="mono" style={{ fontSize: 15, fontWeight: 700, color: item.color }}>{item.value}</span>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* NOTIFICATIONS */}
-            <div className="pv-card" style={{ padding: 22 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                <h2 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0 }}>Recent Activity</h2>
-                <button onClick={() => navigate('/doctor/notifications')} style={{ fontSize: 12, fontWeight: 600, color: '#0d9488', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
+            {/* RECENT ACTIVITY */}
+            <div className="fade-up" style={{ ...card, padding: 22, animationDelay: '.28s' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <p style={sectionTitle}>Recent Activity</p>
+                <button
+                  onClick={() => navigate('/doctor/notifications')}
+                  style={{ fontSize: 12, fontWeight: 600, color: '#0d9488', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Sora, sans-serif', padding: 0 }}
+                >
                   See all
                 </button>
               </div>
               {notifications.length === 0 ? (
-                <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: '20px 0' }}>No recent activity</p>
+                <p style={{ fontSize: 12.5, color: '#94a3b8', textAlign: 'center', padding: '20px 0', margin: 0 }}>No recent activity</p>
               ) : (
                 <div>
-                  {notifications.map((n, i) => (
-                    <div key={n.id} className="notif-item" style={{ animationDelay: `${i * 0.06}s` }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: n.isRead ? '#e2e8f0' : '#0d9488', marginTop: 6, flexShrink: 0 }} />
+                  {notifications.map((n) => (
+                    <div key={n.id} className="notif-row">
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: n.isRead ? '#e2e8f0' : '#0d9488', marginTop: 5, flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 600, color: n.isRead ? '#94a3b8' : '#0f172a', margin: '0 0 2px' }}>{n.title}</p>
-                        <p style={{ fontSize: 11, color: '#94a3b8', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.message}</p>
-                        <p style={{ fontSize: 10, color: '#cbd5e1', margin: '3px 0 0', fontFamily: 'JetBrains Mono, monospace' }}>
+                        <p style={{ fontSize: 12, fontWeight: 600, color: n.isRead ? '#94a3b8' : '#0f172a', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.title}</p>
+                        <p style={{ fontSize: 11, color: '#94a3b8', margin: '0 0 3px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.message}</p>
+                        <p className="mono" style={{ fontSize: 10, color: '#cbd5e1', margin: 0 }}>
                           {new Date(n.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -706,40 +681,65 @@ export default function DoctorDashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── COMPLETE MODAL ── */}
       {completeModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ width: 'min(480px, 100%)', background: 'white', borderRadius: 16, boxShadow: '0 24px 70px rgba(15,23,42,0.24)', overflow: 'hidden' }}>
-            <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9' }}>
-              <h2 style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', margin: 0 }}>Complete appointment</h2>
-              <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>Dr. consultation with {completeModal.patientName}</p>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, backdropFilter: 'blur(2px)' }}>
+          <div style={{ width: 'min(460px, 100%)', background: 'white', borderRadius: 18, boxShadow: '0 20px 60px rgba(15,23,42,.2)', overflow: 'hidden', animation: 'up .25s ease' }}>
+            <div style={{ padding: '20px 22px', borderBottom: '1px solid #f1f5f9' }}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 3px' }}>Complete Appointment</p>
+              <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>Consultation with {completeModal.patientName}</p>
             </div>
-            <div style={{ padding: 20 }}>
+
+            <div style={{ padding: '20px 22px' }}>
               {completeModal.paymentStatus !== 'PAID' && (
-                <div style={{ padding: 12, borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, fontWeight: 600, marginBottom: 14 }}>
-                  This appointment is payment pending. Collect payment if needed before completing it.
+                <div style={{ padding: '11px 14px', borderRadius: 10, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 12, fontWeight: 500, marginBottom: 16 }}>
+                  ⚠️ This appointment has a pending payment. Collect fees before completing if applicable.
                 </div>
               )}
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Consultation notes</label>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>
+                Consultation Notes
+              </label>
               <textarea
                 value={completeNotes}
                 onChange={e => setCompleteNotes(e.target.value)}
                 rows={4}
-                placeholder="Add consultation notes..."
-                style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', border: '1.5px solid #e2e8f0', borderRadius: 12, padding: 12, fontFamily: 'Sora, sans-serif', fontSize: 13, outline: 'none' }}
+                placeholder="Add consultation notes…"
+                style={{ width: '100%', boxSizing: 'border-box', resize: 'vertical', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontFamily: 'Sora, sans-serif', fontSize: 13, outline: 'none', color: '#0f172a', lineHeight: 1.6 }}
               />
             </div>
-            <div style={{ padding: 16, borderTop: '1px solid #f1f5f9', display: 'flex', gap: 10, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              <button onClick={() => setCompleteModal(null)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #e2e8f0', background: 'white', color: '#475569', fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+
+            <div style={{ padding: '14px 22px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setCompleteModal(null)}
+                style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid #e2e8f0', background: 'white', color: '#475569', fontWeight: 600, cursor: 'pointer', fontFamily: 'Sora, sans-serif', fontSize: 13 }}
+              >
+                Cancel
+              </button>
               {completeModal.paymentStatus !== 'PAID' ? (
                 <>
-                  <button disabled={completingId === completeModal.id} onClick={() => handleComplete(false)} style={{ padding: '9px 14px', borderRadius: 10, border: '1px solid #fde68a', background: '#fffbeb', color: '#92400e', fontWeight: 700, cursor: 'pointer' }}>Complete unpaid</button>
-                  <button disabled={completingId === completeModal.id} onClick={() => handleComplete(true)} style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>
-                    {completingId === completeModal.id ? 'Saving...' : 'Payment collected'}
+                  <button
+                    disabled={completingId === completeModal.id}
+                    onClick={() => handleComplete(false)}
+                    style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid #fde68a', background: '#fffbeb', color: '#92400e', fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif', fontSize: 13 }}
+                  >
+                    Complete unpaid
+                  </button>
+                  <button
+                    disabled={completingId === completeModal.id}
+                    onClick={() => handleComplete(true)}
+                    style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: '#0d9488', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif', fontSize: 13 }}
+                  >
+                    {completingId === completeModal.id ? 'Saving…' : 'Payment collected ✓'}
                   </button>
                 </>
               ) : (
-                <button disabled={completingId === completeModal.id} onClick={() => handleComplete(false)} style={{ padding: '9px 16px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', fontWeight: 800, cursor: 'pointer' }}>
-                  {completingId === completeModal.id ? 'Saving...' : 'Complete visit'}
+                <button
+                  disabled={completingId === completeModal.id}
+                  onClick={() => handleComplete(false)}
+                  style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: '#0d9488', color: 'white', fontWeight: 700, cursor: 'pointer', fontFamily: 'Sora, sans-serif', fontSize: 13 }}
+                >
+                  {completingId === completeModal.id ? 'Saving…' : 'Complete visit ✓'}
                 </button>
               )}
             </div>
