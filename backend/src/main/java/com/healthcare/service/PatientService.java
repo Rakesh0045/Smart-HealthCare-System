@@ -36,7 +36,17 @@ public class PatientService {
     @Transactional(readOnly = true)
     public PatientResponse getPatientProfile(Long userId) {
         return patientRepo.findByUserId(userId).map(this::mapToResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Patient profile not found"));
+                .orElseGet(() -> {
+                    User user = userRepo.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+                    return PatientResponse.builder()
+                            .userId(user.getId())
+                            .name(user.getName())
+                            .email(user.getEmail())
+                            .phone(user.getPhone())
+                            .profileImage(user.getProfileImage())
+                            .build();
+                });
     }
 
     @Transactional(readOnly = true)

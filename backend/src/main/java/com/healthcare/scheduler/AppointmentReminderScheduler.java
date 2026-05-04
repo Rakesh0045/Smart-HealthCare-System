@@ -61,28 +61,31 @@ public class AppointmentReminderScheduler {
      * Runs every hour — auto-completes missed/no-show appointments older than 2
      * hours.
      */
-    @Scheduled(cron = "0 0 * * * *")
+    @Scheduled(cron = "0 */1 * * * *")
     @Transactional
     public void autoMarkNoShow() {
-        // Mark appointments from yesterday that are still SCHEDULED as NO_SHOW
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        List<Appointment> missed = appointmentRepo
-                .findByStatusAndReminderSentFalseAndAppointmentDate(
-                        AppointmentStatus.SCHEDULED, yesterday);
+        // Find overdue appointments (past end time or previous dates) that are still
+        // scheduled/rescheduled
+        LocalDate today = LocalDate.now();
+        java.time.LocalTime now = java.time.LocalTime.now();
+        List<Appointment> overdue = appointmentRepo.findOverdueAppointments(today, now);
 
-        for (Appointment a : missed) {
-            a.setStatus(AppointmentStatus.NO_SHOW);
-            appointmentRepo.save(a);
-            notificationService.sendNoShowNotification(a.getPatient().getUser(),
-                    String.format("Dr. %s | %s at %s", a.getDoctor().getUser().getName(), a.getAppointmentDate(),
-                            a.getStartTime()),
-                    a.getDoctor().getUser().getName());
-            log.debug("Marked appointment {} as NO_SHOW", a.getId());
+        for (Appointment a : overdue) {
+            try {
+                a.setStatus(AppointmentStatus.NO_SHOW);
+                appointmentRepo.save(a);
+                String details = String.format("Dr. %s | %s at %s",
+                        a.getDoctor().getUser().getName(), a.getAppointmentDate(), a.getStartTime());
+                notificationService.sendNoShowNotification(a.getPatient().getUser(), details,
+                        a.getDoctor().getUser().getName());
+                log.debug("Auto-marked appointment {} as NO_SHOW", a.getId());
+            } catch (Exception e) {
+                log.error("Failed to auto-mark appointment {} as NO_SHOW: {}", a.getId(), e.getMessage());
+            }
         }
 
-        if (!missed.isEmpty()) {
-            log.info("Auto-marked {} appointments as NO_SHOW", missed.size());
-        }
+        if (!overdue.isEmpty())
+            log.info("Auto-marked {} appointments as NO_SHOW", overdue.size());
     }
 
     /**

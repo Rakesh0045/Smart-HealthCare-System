@@ -276,6 +276,16 @@ export default function BookAppointment() {
     } finally { setLoading(false) }
   }
 
+  const handlePayAtAppointment = async () => {
+    if (!booked) return
+    setLoading(true)
+    try {
+      await paymentApi.payAtAppointment(booked.id)
+      toast.success('Pay at appointment time selected')
+      navigate('/patient/appointments')
+    } finally { setLoading(false) }
+  }
+
   // ── Step 0: Select Doctor ─────────────────────────────────────────────────
   const renderStep0 = () => (
     <>
@@ -712,11 +722,11 @@ export default function BookAppointment() {
           <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'linear-gradient(135deg, #054694, #054694)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 8px 24px rgba(13,148,136,0.3)' }}>
             <CheckCircle2 style={{ width: 40, height: 40, color: 'white' }} />
           </div>
-          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '0 0 8px', fontFamily: 'Sora, sans-serif' }}>{isRescheduleMode ? 'Appointment Rescheduled!' : 'Booking Confirmed!'}</h2>
+          <h2 style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '0 0 8px', fontFamily: 'Sora, sans-serif' }}>{isRescheduleMode ? 'Appointment Rescheduled!' : 'Appointment Slot Reserved!'}</h2>
           <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 24px', fontFamily: 'Sora, sans-serif' }}>
             {isRescheduleMode
-              ? `Your appointment with Dr. ${selectedDoctor?.name} has been updated. You’ll receive a confirmation email shortly.`
-              : `Your appointment with Dr. ${selectedDoctor?.name} has been confirmed. You’ll receive a confirmation email shortly.`}
+              ? `Your appointment with Dr. ${selectedDoctor?.name} has been updated.`
+              : `Your appointment with Dr. ${selectedDoctor?.name} is reserved. Choose a payment option to receive the confirmation email.`}
           </p>
 
           <div style={{ background: '#f0fdfa', borderRadius: 12, padding: '16px', marginBottom: 24, textAlign: 'left' }}>
@@ -744,9 +754,9 @@ export default function BookAppointment() {
                 This appointment was already paid. No additional payment is needed.
               </div>
             ) : (
-              <button onClick={() => navigate('/patient/appointments')}
+              <button onClick={handlePayAtAppointment} disabled={loading}
                 style={{ padding: '12px', borderRadius: 12, border: '1.5px solid #e6f7f5', background: 'white', fontSize: 13, fontWeight: 600, color: '#64748b', cursor: 'pointer', fontFamily: 'Sora, sans-serif' }}>
-                Pay at appointment time
+                {loading ? 'Saving choice...' : 'Pay at appointment time'}
               </button>
             )}
           </div>

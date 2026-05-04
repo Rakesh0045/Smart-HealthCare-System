@@ -12,7 +12,7 @@ const SPECIALIZATIONS = ['Cardiology','Neurology','General Medicine','Dermatolog
   'Gynecology','Urology','Pediatrics','Oncology','Dentistry','Pulmonology']
 
 export default function DoctorProfile() {
-  const { user } = useAuthStore()
+  const { user, updateUser } = useAuthStore()
   const [form, setForm] = useState({ specialization:'',experience:'',consultationFee:'',bio:'',qualification:'',hospital:'',slotDuration:'30' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -33,6 +33,7 @@ export default function DoctorProfile() {
     try {
       const profileData = { ...form, experience: parseInt(form.experience), consultationFee: parseFloat(form.consultationFee), slotDuration: parseInt(form.slotDuration) }
       await doctorApi.updateProfile(profileData)
+      updateUser({ profileComplete: true })
       toast.success('Profile updated!')
     } finally { setSaving(false) }
   }

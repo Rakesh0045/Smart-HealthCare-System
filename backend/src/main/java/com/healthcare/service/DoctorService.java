@@ -49,10 +49,21 @@ public class DoctorService {
 
     @Transactional(readOnly = true)
     public DoctorResponse getDoctorProfile(Long userId) {
-        Doctor doctor = doctorRepo.findByUserId(userId)
-                .orElseThrow(
-                        () -> new ResourceNotFoundException("Doctor profile not found. Please create your profile."));
-        return mapToResponse(doctor);
+        return doctorRepo.findByUserId(userId)
+                .map(this::mapToResponse)
+                .orElseGet(() -> {
+                    User user = userRepo.findById(userId)
+                            .orElseThrow(() -> new ResourceNotFoundException("User", userId));
+                    return DoctorResponse.builder()
+                            .userId(user.getId())
+                            .name(user.getName())
+                            .email(user.getEmail())
+                            .phone(user.getPhone())
+                            .profileImage(user.getProfileImage())
+                            .slotDuration(defaultSlotDuration)
+                            .isAvailable(true)
+                            .build();
+                });
     }
 
     @Transactional(readOnly = true)

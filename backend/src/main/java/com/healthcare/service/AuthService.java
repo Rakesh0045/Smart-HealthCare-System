@@ -12,6 +12,8 @@ import com.healthcare.exception.BadRequestException;
 import com.healthcare.exception.ConflictException;
 import com.healthcare.exception.ResourceNotFoundException;
 import com.healthcare.repository.EmailVerificationTokenRepository;
+import com.healthcare.repository.DoctorRepository;
+import com.healthcare.repository.PatientRepository;
 import com.healthcare.repository.RefreshTokenRepository;
 import com.healthcare.repository.UserRepository;
 import com.healthcare.security.JwtTokenProvider;
@@ -36,6 +38,8 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final PatientRepository patientRepository;
+    private final DoctorRepository doctorRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailVerificationTokenRepository emailVerificationTokenRepository;
     private final PasswordEncoder passwordEncoder;
@@ -183,10 +187,28 @@ public class AuthService {
     }
 
     private boolean isProfileComplete(User user) {
-        if (user.getRole() == Role.PATIENT || user.getRole() == Role.DOCTOR) {
-            return user.getPhone() != null && !user.getPhone().isEmpty();
+        if (user.getRole() == Role.PATIENT) {
+            return patientRepository.findByUserId(user.getId())
+                    .map(patient -> patient.getDateOfBirth() != null
+                            && hasText(patient.getBloodGroup())
+                            && hasText(patient.getAddress())
+                            && hasText(patient.getGender())
+                            && hasText(patient.getEmergencyContact())
+                            && hasText(patient.getEmergencyContactName()))
+                    .orElse(false);
+        }
+        if (user.getRole() == Role.DOCTOR) {
+            return doctorRepository.findByUserId(user.getId())
+                    .map(doctor -> hasText(doctor.getSpecialization())
+                            && doctor.getExperience() != null
+                            && doctor.getConsultationFee() != null)
+                    .orElse(false);
         }
         return true;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 
     private AuthResponse buildAuthResponse(User user, String accessToken,

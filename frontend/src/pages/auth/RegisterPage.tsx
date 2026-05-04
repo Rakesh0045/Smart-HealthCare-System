@@ -63,7 +63,7 @@ export default function RegisterPage() {
       setAuth({ userId: d.userId, name: d.name, email: d.email, role: d.role, profileComplete: d.profileComplete },
                d.accessToken, d.refreshToken)
       toast.success(`Welcome to SmartHealth, ${d.name}!`)
-      navigate(`/${d.role.toLowerCase()}/dashboard`)
+      navigate(d.profileComplete ? `/${d.role.toLowerCase()}/dashboard` : `/${d.role.toLowerCase()}/profile`)
     } finally { setLoading(false) }
   }
 
@@ -80,7 +80,7 @@ export default function RegisterPage() {
       setAuth({ userId: d.userId, name: d.name, email: d.email, role: d.role, profileComplete: d.profileComplete },
                d.accessToken, d.refreshToken)
       toast.success('Email verified successfully')
-      navigate(`/${d.role.toLowerCase()}/dashboard`)
+      navigate(d.profileComplete ? `/${d.role.toLowerCase()}/dashboard` : `/${d.role.toLowerCase()}/profile`)
     } finally { setVerifying(false) }
   }
 

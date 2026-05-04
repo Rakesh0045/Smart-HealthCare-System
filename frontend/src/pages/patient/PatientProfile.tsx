@@ -120,7 +120,7 @@ const inputStyle: React.CSSProperties = {
 
 /* ═══════════════════════════════════════════════════════════ */
 export default function PatientProfile() {
-  const { user } = useAuthStore()
+  const { user, updateUser } = useAuthStore()
   const [form, setForm] = useState({
     dateOfBirth: '', bloodGroup: '', address: '',
     gender: '', allergies: '', emergencyContact: '', emergencyContactName: '',
@@ -148,9 +148,15 @@ export default function PatientProfile() {
   }, [])
 
   const handleSave = async () => {
+    const requiredFields = ['dateOfBirth', 'bloodGroup', 'address', 'gender', 'emergencyContact', 'emergencyContactName']
+    if (requiredFields.some(field => !String((form as any)[field] || '').trim())) {
+      toast.error('Please complete all required profile fields')
+      return
+    }
     setSaving(true)
     try {
       await patientApi.updateProfile(form)
+      updateUser({ profileComplete: true })
       toast.success('Profile updated!')
       setChanged(false)
     } finally { setSaving(false) }
@@ -163,7 +169,7 @@ export default function PatientProfile() {
   const initials = (user?.name || 'P').split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
 
   /* Profile completeness */
-  const fields = ['dateOfBirth', 'bloodGroup', 'address', 'gender', 'allergies', 'emergencyContact', 'emergencyContactName']
+  const fields = ['dateOfBirth', 'bloodGroup', 'address', 'gender', 'emergencyContact', 'emergencyContactName']
   const filled = fields.filter(f => !!(form as any)[f]).length
   const pct = Math.round((filled / fields.length) * 100)
 

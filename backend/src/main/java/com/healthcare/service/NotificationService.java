@@ -559,7 +559,7 @@ public class NotificationService {
                 .theme("amber")
                 .icon(ICON_INFO)
                 .badge("Payment At Clinic")
-                .heading("Pay at appointment time selected")
+                .heading("Appointment Confirmed")
                 .subheading("Hi " + firstName(patientName) + ", your appointment is booked and payment will be collected at the clinic.")
                 .rows(new String[][]{
                         { ICON_DOCTOR, "Doctor",     docPart },

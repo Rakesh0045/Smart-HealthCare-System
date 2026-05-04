@@ -61,6 +61,7 @@ export default function PatientDashboard() {
   const latestNoShow = noShowAppointments[0]
   const pendingPaymentAppointment = [...upcoming]
     .filter(a => (a.paymentStatus || 'PENDING') !== 'PAID')
+    .filter(a => a.status === 'SCHEDULED' || a.status === 'RESCHEDULED') 
     .sort((a, b) => new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())[0]
   const nextAppointment = [...upcoming].sort((a, b) =>
     new Date(a.appointmentDate).getTime() - new Date(b.appointmentDate).getTime())[0]
@@ -508,23 +509,23 @@ export default function PatientDashboard() {
           </div>
         )}
 
-        {pendingPaymentAppointment && (
+        {pendingPaymentAppointment && (pendingPaymentAppointment.status === 'SCHEDULED' || pendingPaymentAppointment.status === 'RESCHEDULED') && (
           <div className="teal-card" style={{ marginBottom: 24, padding: 18, borderColor: '#fde68a', background: '#fffbeb', display: 'flex', alignItems: 'center', gap: 14, animationDelay: '0.2s' }}>
             <div style={{ width: 42, height: 42, borderRadius: 12, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Clock size={20} color="#d97706" />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 14, fontWeight: 800, color: '#92400e', margin: '0 0 3px' }}>
+                <p style={{ fontSize: 14, fontWeight: 800, color: '#92400e', margin: '0 0 3px' }}>
                 Payment pending for Dr. {pendingPaymentAppointment.doctorName}
               </p>
               <p style={{ fontSize: 12, color: '#92400e', margin: 0 }}>
                 You can pay online now or pay at the clinic during your appointment.
               </p>
             </div>
-            <button className="teal-btn-primary" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)', boxShadow: '0 4px 14px rgba(245,158,11,0.25)' }}
-              onClick={() => navigate(`/patient/book?payAppointment=${pendingPaymentAppointment.id}`)}>
-              <Calendar size={14} /> View Payment
-            </button>
+                <button className="teal-btn-primary" style={{ background: 'linear-gradient(135deg, #d97706, #f59e0b)', boxShadow: '0 4px 14px rgba(245,158,11,0.25)' }}
+                  onClick={() => navigate(`/patient/book?payAppointment=${pendingPaymentAppointment.id}`)}>
+                  <Calendar size={14} /> View Payment
+                </button>
           </div>
         )}
 
@@ -549,10 +550,10 @@ export default function PatientDashboard() {
                   </span>
                   <span style={{
                     padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                    background: nextAppointment.paymentStatus === 'PAID' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)',
-                    color: nextAppointment.paymentStatus === 'PAID' ? '#10b981' : '#f59e0b'
+                    background: (nextAppointment.status === 'CANCELLED' || nextAppointment.status === 'NO_SHOW') ? 'rgba(239,68,68,0.06)' : (nextAppointment.paymentStatus === 'PAID' ? 'rgba(16,185,129,0.1)' : 'rgba(245,158,11,0.1)'),
+                    color: (nextAppointment.status === 'CANCELLED' || nextAppointment.status === 'NO_SHOW') ? '#ef4444' : (nextAppointment.paymentStatus === 'PAID' ? '#10b981' : '#f59e0b')
                   }}>
-                    {nextAppointment.paymentStatus === 'PAID' ? 'Paid' : 'Payment Pending'}
+                    {nextAppointment.status === 'CANCELLED' ? 'Cancelled' : nextAppointment.status === 'NO_SHOW' ? 'No Show' : (nextAppointment.paymentStatus === 'PAID' ? 'Paid' : 'Payment Pending')}
                   </span>
                 </div>
 

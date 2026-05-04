@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import DashboardLayout from './components/layout/DashboardLayout'
 import LoginPage from './pages/auth/LoginPage'
@@ -24,14 +24,22 @@ import NotificationsPage from './pages/common/NotificationsPage'
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { isAuthenticated, user } = useAuthStore()
+  const location = useLocation()
   if (!isAuthenticated) return <Navigate to="/login" replace />
   if (roles && user && !roles.includes(user.role)) return <Navigate to="/unauthorized" replace />
+  if (user && ['PATIENT', 'DOCTOR'].includes(user.role) && !user.profileComplete) {
+    const profilePath = `/${user.role.toLowerCase()}/profile`
+    if (location.pathname !== profilePath) return <Navigate to={profilePath} replace />
+  }
   return <>{children}</>
 }
 
 function RoleRedirect() {
   const { user, isAuthenticated } = useAuthStore()
   if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (user && ['PATIENT', 'DOCTOR'].includes(user.role) && !user.profileComplete) {
+    return <Navigate to={`/${user.role.toLowerCase()}/profile`} replace />
+  }
   if (user?.role === 'PATIENT') return <Navigate to="/patient/dashboard" replace />
   if (user?.role === 'DOCTOR') return <Navigate to="/doctor/dashboard" replace />
   if (user?.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />

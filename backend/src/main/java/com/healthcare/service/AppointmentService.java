@@ -78,12 +78,6 @@ public class AppointmentService {
 
         appointment = appointmentRepo.save(appointment);
 
-        String details = buildAppointmentDetails(appointment, doctor, patient);
-        byte[] slip = appointmentSlipPdfService.generateSlip(appointment,
-                "Appointment Slip", "Please keep this slip for your visit.");
-        notificationService.sendAppointmentConfirmation(
-                patient.getUser(), doctor.getUser(), details, slip, slip);
-
         auditLogService.log(userId, "APPOINTMENT_BOOKED", "Appointment",
                 appointment.getId(), "Booked with Dr. " + doctor.getUser().getName());
 
