@@ -44,6 +44,8 @@ export default function DoctorAppointments() {
   const [search, setSearch] = useState('')
   const [paymentFilter, setPaymentFilter] = useState('ALL')
   const [visitFilter, setVisitFilter] = useState('ALL')
+  const [dateFilter, setDateFilter] = useState('ALL')
+  const [todayScheduledOnly, setTodayScheduledOnly] = useState(false)
   const [completingId, setCompletingId] = useState<number | null>(null)
   const [noShowId, setNoShowId] = useState<number | null>(null)
   const [completeModal, setCompleteModal] = useState<any>(null)
@@ -85,10 +87,47 @@ export default function DoctorAppointments() {
   STATUS_TABS.slice(1).forEach(t => { counts[t] = appointments.filter(a => a.status === t).length })
 
   // FIX: search trims whitespace and is case-insensitive; filter works independently of search
+  const isToday = (dateStr?: string) => {
+    if (!dateStr) return false
+    const d = new Date(dateStr)
+    const now = new Date()
+    d.setHours(0, 0, 0, 0)
+    now.setHours(0, 0, 0, 0)
+    return d.getTime() === now.getTime()
+  }
+
+  const isWithinNextDays = (dateStr: string | undefined, days: number) => {
+    if (!dateStr) return false
+    const d = new Date(dateStr)
+    const now = new Date()
+    d.setHours(0, 0, 0, 0)
+    now.setHours(0, 0, 0, 0)
+    const diff = (d.getTime() - now.getTime()) / 86400000
+    return diff >= 0 && diff <= days
+  }
+
+  const isThisMonth = (dateStr?: string) => {
+    if (!dateStr) return false
+    const d = new Date(dateStr)
+    const now = new Date()
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+  }
+
   const filtered = appointments
-    .filter(a => filter === 'ALL' || a.status === filter)
+    .filter(a => {
+      if (!todayScheduledOnly) return filter === 'ALL' || a.status === filter
+      return a.status === 'SCHEDULED' || a.status === 'RESCHEDULED'
+    })
     .filter(a => paymentFilter === 'ALL' || (a.paymentStatus || 'PENDING') === paymentFilter)
     .filter(a => visitFilter === 'ALL' || (visitFilter === 'FIRST' ? a.isFirstVisit : !a.isFirstVisit))
+    .filter(a => {
+      if (todayScheduledOnly) return isToday(a.appointmentDate)
+      if (dateFilter === 'ALL') return true
+      if (dateFilter === 'TODAY') return isToday(a.appointmentDate)
+      if (dateFilter === 'NEXT_7') return isWithinNextDays(a.appointmentDate, 7)
+      if (dateFilter === 'THIS_MONTH') return isThisMonth(a.appointmentDate)
+      return true
+    })
     .filter(a => {
       const q = search.trim().toLowerCase()
       if (!q) return true
@@ -263,7 +302,7 @@ export default function DoctorAppointments() {
             </div>
 
             {/* FIX: Search row — properly wired value + onChange + clear button */}
-            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: 1, maxWidth: 320 }}>
                 <Search style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', width: 15, height: 15, color: '#94a3b8', pointerEvents: 'none' }} />
                 <input
@@ -291,9 +330,43 @@ export default function DoctorAppointments() {
                 <option value="FIRST">First visit</option>
                 <option value="RETURNING">Returning</option>
               </select>
-              {(search || filter !== 'ALL' || paymentFilter !== 'ALL' || visitFilter !== 'ALL') && (
+              <select className="select-filter" value={dateFilter} onChange={e => setDateFilter(e.target.value)}>
+                <option value="ALL">All dates</option>
+                <option value="TODAY">Today</option>
+                <option value="NEXT_7">Next 7 days</option>
+                <option value="THIS_MONTH">This month</option>
+              </select>
+              <button
+                onClick={() => {
+                  setTodayScheduledOnly(v => !v)
+                  setFilter('ALL')
+                }}
+                style={{
+                  padding: '9px 12px',
+                  borderRadius: 10,
+                  border: todayScheduledOnly ? '1.5px solid #0d9488' : '1.5px solid #e2e8f0',
+                  background: todayScheduledOnly ? '#f0fdfa' : '#fff',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: todayScheduledOnly ? '#0d9488' : '#475569',
+                  cursor: 'pointer',
+                  fontFamily: 'Sora, sans-serif',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}>
+                <Calendar style={{ width: 13, height: 13 }} /> Today scheduled
+              </button>
+              {(search || filter !== 'ALL' || paymentFilter !== 'ALL' || visitFilter !== 'ALL' || dateFilter !== 'ALL' || todayScheduledOnly) && (
                 <button
-                  onClick={() => { setSearch(''); setFilter('ALL'); setPaymentFilter('ALL'); setVisitFilter('ALL') }}
+                  onClick={() => {
+                    setSearch('')
+                    setFilter('ALL')
+                    setPaymentFilter('ALL')
+                    setVisitFilter('ALL')
+                    setDateFilter('ALL')
+                    setTodayScheduledOnly(false)
+                  }}
                   style={{ padding: '9px 14px', borderRadius: 10, border: '1.5px solid #fecaca', background: '#fef2f2', fontSize: 12, fontWeight: 600, color: '#ef4444', cursor: 'pointer', fontFamily: 'Sora, sans-serif', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <X style={{ width: 13, height: 13 }} /> Clear filters
                 </button>
@@ -377,14 +450,14 @@ export default function DoctorAppointments() {
                       </p>
                     )}
                   </div>
-                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'nowrap' }}>
                     {(a.status === 'SCHEDULED' || a.status === 'RESCHEDULED') && (
                       <>
                         <button
                           className="action-btn"
                           onClick={() => openCompleteModal(a)}
                           disabled={completingId === a.id}
-                          style={{ background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white' }}
+                          style={{ background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white', whiteSpace: 'nowrap', padding: '6px 10px' }}
                         >
                           {completingId === a.id ? '...' : 'Complete'}
                         </button>
@@ -392,7 +465,7 @@ export default function DoctorAppointments() {
                           className="action-btn"
                           onClick={() => handleNoShow(a.id)}
                           disabled={noShowId === a.id}
-                          style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                          style={{ background: '#f8fafc', color: '#475569', border: '1px solid #e2e8f0', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap', padding: '6px 10px' }}
                         >
                           <UserX size={12} /> {noShowId === a.id ? '...' : 'No-show'}
                         </button>

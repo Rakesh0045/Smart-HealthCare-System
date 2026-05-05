@@ -56,10 +56,10 @@ public class AppointmentReminderScheduler {
     }
 
     /**
-     * Runs every minute — auto-marks missed appointments as no-show only after a
+     * Runs every 5 minute — auto-marks missed appointments as no-show only after a
      * grace period.
      */
-    @Scheduled(cron = "0 */1 * * * *")
+    @Scheduled(cron = "0 */5 * * * *")
     @Transactional
     public void autoMarkNoShow() {
         // Mark only appointments that are well past their end time on the same day.
