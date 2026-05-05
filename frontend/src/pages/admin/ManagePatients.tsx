@@ -4,14 +4,14 @@ import { Users, Search, X, UserX, UserCheck } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const BLOOD_COLORS: Record<string, { color: string; bg: string }> = {
-  'A+':  { color: '#ef4444', bg: 'rgba(239,68,68,0.08)'   },
-  'A-':  { color: '#f97316', bg: 'rgba(249,115,22,0.08)'  },
-  'B+':  { color: '#3b82f6', bg: 'rgba(59,130,246,0.08)'  },
-  'B-':  { color: '#6366f1', bg: 'rgba(99,102,241,0.08)'  },
-  'AB+': { color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)'  },
-  'AB-': { color: '#ec4899', bg: 'rgba(236,72,153,0.08)'  },
-  'O+':  { color: '#10b981', bg: 'rgba(16,185,129,0.08)'  },
-  'O-':  { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)'  },
+  'A+': { color: '#ef4444', bg: 'rgba(239,68,68,0.08)' },
+  'A-': { color: '#f97316', bg: 'rgba(249,115,22,0.08)' },
+  'B+': { color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+  'B-': { color: '#6366f1', bg: 'rgba(99,102,241,0.08)' },
+  'AB+': { color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)' },
+  'AB-': { color: '#ec4899', bg: 'rgba(236,72,153,0.08)' },
+  'O+': { color: '#10b981', bg: 'rgba(16,185,129,0.08)' },
+  'O-': { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
 }
 
 const generateAvatar = (name?: string) =>

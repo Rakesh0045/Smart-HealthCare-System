@@ -14,28 +14,28 @@ const generateAvatarUrl = (name?: string) => `https://ui-avatars.com/api/?name=$
 
 const navConfig = {
   PATIENT: [
-    { to: '/patient/dashboard',       label: 'Overview',          icon: LayoutDashboard, section: 'main' },
-    { to: '/patient/book',            label: 'Book Appointment',  icon: Calendar,        section: 'main' },
-    { to: '/patient/appointments',    label: 'My Appointments',   icon: ClipboardList,   section: 'main' },
-    { to: '/patient/prescriptions',   label: 'Prescriptions',     icon: FileText,        section: 'main' },
-    { to: '/patient/symptom-checker', label: 'AI Symptom Checker',   icon: Brain,           section: 'tools' },
-    { to: '/patient/doctors',         label: 'Find Doctors',      icon: Search,          section: 'tools' },
-    { to: '/patient/profile',         label: 'My Profile',        icon: User,            section: 'tools' },
+    { to: '/patient/dashboard', label: 'Overview', icon: LayoutDashboard, section: 'main' },
+    { to: '/patient/book', label: 'Book Appointment', icon: Calendar, section: 'main' },
+    { to: '/patient/appointments', label: 'My Appointments', icon: ClipboardList, section: 'main' },
+    { to: '/patient/prescriptions', label: 'Prescriptions', icon: FileText, section: 'main' },
+    { to: '/patient/symptom-checker', label: 'AI Symptom Checker', icon: Brain, section: 'tools' },
+    { to: '/patient/doctors', label: 'Find Doctors', icon: Search, section: 'tools' },
+    { to: '/patient/profile', label: 'My Profile', icon: User, section: 'tools' },
   ],
   DOCTOR: [
-    { to: '/doctor/dashboard',     label: 'Overview',       icon: LayoutDashboard, section: 'main' },
-    { to: '/doctor/appointments',  label: 'Appointments',   icon: Calendar,        section: 'main' },
-    { to: '/doctor/patients',      label: 'My Patients',    icon: Users,           section: 'main' },
-    { to: '/doctor/prescriptions', label: 'Prescriptions',  icon: FileText,        section: 'main' },
-    { to: '/doctor/availability',  label: 'My Schedule',    icon: Clock,           section: 'main' },
-    { to: '/doctor/profile',       label: 'My Profile',     icon: User,            section: 'settings' },
+    { to: '/doctor/dashboard', label: 'Overview', icon: LayoutDashboard, section: 'main' },
+    { to: '/doctor/appointments', label: 'Appointments', icon: Calendar, section: 'main' },
+    { to: '/doctor/patients', label: 'My Patients', icon: Users, section: 'main' },
+    { to: '/doctor/prescriptions', label: 'Prescriptions', icon: FileText, section: 'main' },
+    { to: '/doctor/availability', label: 'My Schedule', icon: Clock, section: 'main' },
+    { to: '/doctor/profile', label: 'My Profile', icon: User, section: 'settings' },
   ],
   ADMIN: [
-    { to: '/admin/dashboard',   label: 'Overview',     icon: LayoutDashboard, section: 'main' },
-    { to: '/admin/doctors',     label: 'Doctors',      icon: Stethoscope,     section: 'main' },
-    { to: '/admin/patients',    label: 'Patients',     icon: Users,           section: 'main' },
-    { to: '/admin/users',       label: 'All Users',    icon: Shield,          section: 'main' },
-    { to: '/admin/audit-logs',  label: 'Audit Logs',   icon: ScrollText,      section: 'reports' },
+    { to: '/admin/dashboard', label: 'Overview', icon: LayoutDashboard, section: 'main' },
+    { to: '/admin/doctors', label: 'Doctors', icon: Stethoscope, section: 'main' },
+    { to: '/admin/patients', label: 'Patients', icon: Users, section: 'main' },
+    { to: '/admin/users', label: 'All Users', icon: Shield, section: 'main' },
+    { to: '/admin/audit-logs', label: 'Audit Logs', icon: ScrollText, section: 'reports' },
   ],
 }
 
@@ -85,11 +85,11 @@ export default function DashboardLayout() {
   useEffect(() => {
     notificationApi.getUnreadCount()
       .then(res => setUnreadCount(res.data.data.count))
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   const handleLogout = async () => {
-    try { await authApi.logout() } catch {}
+    try { await authApi.logout() } catch { }
     logout()
     toast.success('Logged out successfully')
     navigate('/login')
@@ -154,9 +154,9 @@ export default function DashboardLayout() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${theme.accent}, ${theme.accentLight})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${theme.accent}40`, position: 'relative' }}>
               <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${theme.accent}, ${theme.accentLight})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${theme.accent}40` }}>
-              <Stethoscope style={{ width: 18, height: 18, color: 'white' }} />
-            </div>
-              
+                <Stethoscope style={{ width: 18, height: 18, color: 'white' }} />
+              </div>
+
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'white', lineHeight: 1.2 }}>MediCare</div>
@@ -165,7 +165,7 @@ export default function DashboardLayout() {
           </div>
         </div>
 
-        
+
 
         {/* Nav */}
         <nav style={{ flex: 1, overflowY: 'auto', padding: '0 10px' }}>
