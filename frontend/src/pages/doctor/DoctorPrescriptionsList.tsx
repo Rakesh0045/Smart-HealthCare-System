@@ -2,109 +2,293 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { prescriptionApi } from '../../api'
 import { LoadingSpinner } from '../../components/common'
-import { FileDown, FileText, Plus } from 'lucide-react'
+import {
+  FileDown, FileText, Plus, Search, X, Download,
+  Calendar, User, Hash, Stethoscope, ChevronRight, RefreshCw
+} from 'lucide-react'
 import toast from 'react-hot-toast'
+
+const fmtDate = (d: string) =>
+  d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'
 
 export default function DoctorPrescriptionsList() {
   const [list, setList] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [downloading, setDownloading] = useState<number | null>(null)
 
-  useEffect(() => {
-    prescriptionApi
-      .getMy()
+  const load = () => {
+    setLoading(true)
+    prescriptionApi.getMy()
       .then(r => setList(r.data.data || []))
       .catch(() => setList([]))
       .finally(() => setLoading(false))
-  }, [])
+  }
+  useEffect(() => { load() }, [])
 
-  const download = async (id: number) => {
+  const handleDownload = async (id: number) => {
+    setDownloading(id)
     try {
       const res = await prescriptionApi.downloadPdf(id)
-      const blob = new Blob([res.data], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
+      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
       const a = document.createElement('a')
-      a.href = url
-      a.download = `prescription-${id}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      a.href = url; a.download = `prescription-${id}.pdf`
+      a.click(); URL.revokeObjectURL(url)
       toast.success('Download started')
-    } catch {
-      /* API interceptor shows error toast */
-    }
+    } catch {} finally { setDownloading(null) }
   }
+
+  const filtered = list.filter(p => {
+    const q = search.trim().toLowerCase()
+    if (!q) return true
+    return (
+      p.patientName?.toLowerCase().includes(q) ||
+      p.diagnosis?.toLowerCase().includes(q) ||
+      String(p.id).includes(q)
+    )
+  })
 
   if (loading) return <LoadingSpinner />
 
   return (
-    <div style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: 48, fontFamily: "'Sora', sans-serif" }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 24 }}>
-        <div>
-          <p style={{ fontSize: 12, fontWeight: 700, color: '#0d9488', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>Doctor Portal</p>
-          <h1 style={{ fontSize: 26, fontWeight: 700, color: '#0f172a', margin: 0 }}>Prescriptions</h1>
-          <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Issued prescriptions and PDF downloads</p>
-        </div>
-        <Link
-          to="/doctor/prescriptions/new"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 8,
-            padding: '10px 18px', borderRadius: 12,
-            background: 'linear-gradient(135deg, #0d9488, #0891b2)', color: 'white',
-            fontSize: 13, fontWeight: 700, textDecoration: 'none',
-          }}
-        >
-          <Plus size={18} /> New prescription
-        </Link>
+    <div className="dp-root">
+      <div className="dp-bg" aria-hidden>
+        <div className="dp-orb dp-orb-1" /><div className="dp-orb dp-orb-2" />
+        <div className="dp-grid" />
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #f0fdf4', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div className="dp-page">
+
+        {/* ══ HEADER ══ */}
+        <header className="dp-header">
+          <div>
+            <p className="dp-eyebrow"><span className="dp-live" />Doctor Portal</p>
+            <h1 className="dp-title">Prescriptions</h1>
+            <p className="dp-sub">
+              {list.length} prescription{list.length !== 1 ? 's' : ''} issued · PDF downloads available
+            </p>
+          </div>
+          <div className="dp-header-actions">
+            <button className="dp-refresh-btn" onClick={load} title="Refresh">
+              <RefreshCw size={14} />
+            </button>
+            <Link to="/doctor/prescriptions/new" className="dp-new-btn">
+              <Plus size={15} /> New Prescription
+            </Link>
+          </div>
+        </header>
+
+        {/* ══ SEARCH ══ */}
+        {list.length > 0 && (
+          <div className="dp-toolbar">
+            <div className="dp-search-wrap">
+              <Search size={14} className="dp-search-ic" />
+              <input
+                className="dp-search"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by patient, diagnosis, or Rx number…"
+              />
+              {search && (
+                <button className="dp-search-clear" onClick={() => setSearch('')}><X size={12} /></button>
+              )}
+            </div>
+            <span className="dp-count-hint">{filtered.length} / {list.length}</span>
+          </div>
+        )}
+
+        {/* ══ EMPTY ══ */}
         {list.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '48px 24px', color: '#64748b' }}>
-            <FileText size={40} style={{ margin: '0 auto 12px', opacity: 0.35 }} />
-            <p style={{ fontSize: 15, fontWeight: 600, margin: 0 }}>No prescriptions yet</p>
-            <p style={{ fontSize: 13, marginTop: 8 }}>Complete a visit and add a prescription from the button above.</p>
+          <div className="dp-empty">
+            <div className="dp-empty-ic"><FileText size={30} strokeWidth={1.5} /></div>
+            <h3 className="dp-empty-title">No prescriptions yet</h3>
+            <p className="dp-empty-sub">Complete a patient visit and issue a prescription — they'll appear here with PDF download</p>
+            <Link to="/doctor/prescriptions/new" className="dp-new-btn dp-new-btn-lg">
+              <Plus size={14} /> Write First Prescription
+            </Link>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="dp-empty">
+            <div className="dp-empty-ic"><Search size={26} strokeWidth={1.5} /></div>
+            <h3 className="dp-empty-title">No results for "{search}"</h3>
+            <p className="dp-empty-sub">Try a different patient name or diagnosis</p>
+            <button className="dp-clear-btn" onClick={() => setSearch('')}><X size={12} /> Clear</button>
           </div>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #e2e8f0', textAlign: 'left', color: '#64748b', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  <th style={{ padding: '14px 16px' }}>Rx #</th>
-                  <th style={{ padding: '14px 16px' }}>Patient</th>
-                  <th style={{ padding: '14px 16px' }}>Diagnosis</th>
-                  <th style={{ padding: '14px 16px' }}>Issued</th>
-                  <th style={{ padding: '14px 16px', width: 120 }}>PDF</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.map((p: any) => (
-                  <tr key={p.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>RX-{String(p.id).padStart(5, '0')}</td>
-                    <td style={{ padding: '12px 16px', color: '#334155' }}>{p.patientName || '—'}</td>
-                    <td style={{ padding: '12px 16px', color: '#475569', maxWidth: 360 }}>{p.diagnosis || '—'}</td>
-                    <td style={{ padding: '12px 16px', color: '#64748b', whiteSpace: 'nowrap' }}>
-                      {p.createdAt ? new Date(p.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <button
-                        type="button"
-                        onClick={() => download(p.id)}
-                        style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 6,
-                          padding: '6px 12px', borderRadius: 8, border: '1px solid #ccfbf1',
-                          background: '#f0fdfa', color: '#0f766e', fontSize: 12, fontWeight: 700,
-                          cursor: 'pointer', fontFamily: 'inherit',
-                        }}
-                      >
-                        <FileDown size={14} /> PDF
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="dp-table-card">
+            {/* Table header */}
+            <div className="dp-table-head">
+              <span>Rx No.</span>
+              <span>Patient</span>
+              <span>Diagnosis</span>
+              <span>Medicines</span>
+              <span>Issued on</span>
+              <span>PDF</span>
+            </div>
+
+            <div className="dp-table-body">
+              {filtered.map((p, idx) => (
+                <div key={p.id} className="dp-row" style={{ animationDelay: `${Math.min(idx, 15) * 0.04}s` }}>
+
+                  {/* Rx number */}
+                  <div className="dp-row-rx">
+                    <div className="dp-rx-ic"><FileText size={13} /></div>
+                    <div>
+                      <span className="dp-rx-num">RX-{String(p.id).padStart(5, '0')}</span>
+                      <span className="dp-rx-sub">
+                        <Hash size={9} />{p.id}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Patient */}
+                  <div className="dp-row-patient">
+                    <div className="dp-row-av">
+                      {p.patientName?.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase() || 'P'}
+                    </div>
+                    <div>
+                      <span className="dp-patient-name">{p.patientName || '—'}</span>
+                    </div>
+                  </div>
+
+                  {/* Diagnosis */}
+                  <div className="dp-row-diag">
+                    <span className="dp-diag-text" title={p.diagnosis}>{p.diagnosis || '—'}</span>
+                  </div>
+
+                  {/* Medicines count */}
+                  <div>
+                    {p.medicines?.length > 0 ? (
+                      <span className="dp-med-chip">
+                        {p.medicines.length} med{p.medicines.length !== 1 ? 's' : ''}
+                      </span>
+                    ) : (
+                      <span className="dp-med-none">—</span>
+                    )}
+                  </div>
+
+                  {/* Date */}
+                  <div className="dp-row-date">
+                    <Calendar size={11} className="dp-date-ic" />
+                    {fmtDate(p.createdAt)}
+                  </div>
+
+                  {/* Download */}
+                  <div>
+                    <button
+                      className={`dp-dl-btn ${downloading === p.id ? 'dp-dl-loading' : ''}`}
+                      onClick={() => handleDownload(p.id)}
+                      disabled={downloading === p.id}
+                    >
+                      {downloading === p.id
+                        ? <><span className="dp-spin" /> Downloading…</>
+                        : <><FileDown size={13} /> Download PDF</>}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap');
+        :root{
+          --white:#ffffff; --bg:#f0fdf9; --bg2:#e6faf4;
+          --rim:rgba(16,185,129,0.10); --rim-md:rgba(16,185,129,0.18); --rim-hi:rgba(16,185,129,0.30);
+          --green:#059669; --green-lt:#10b981; --green-dim:rgba(5,150,105,0.07);
+          --teal:#0d9488; --teal-dim:rgba(13,148,136,0.07);
+          --tx1:#0f172a; --tx2:#374151; --tx3:#9ca3af;
+          --sh-sm:0 1px 2px rgba(5,150,105,0.05),0 2px 8px rgba(5,150,105,0.07);
+          --sh-md:0 4px 16px rgba(5,150,105,0.10),0 1px 3px rgba(5,150,105,0.05);
+        }
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        .dp-root{position:relative;min-height:100vh;background:var(--bg);font-family:'Plus Jakarta Sans',sans-serif;color:var(--tx1);-webkit-font-smoothing:antialiased}
+        .dp-bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+        .dp-orb{position:absolute;border-radius:50%;filter:blur(80px)}
+        .dp-orb-1{width:580px;height:580px;top:-160px;right:-80px;background:radial-gradient(circle,rgba(16,185,129,0.09) 0%,transparent 70%);animation:orbDrift 22s ease-in-out infinite alternate}
+        .dp-orb-2{width:420px;height:420px;bottom:-100px;left:-60px;background:radial-gradient(circle,rgba(13,148,136,0.07) 0%,transparent 70%);animation:orbDrift 16s ease-in-out infinite alternate-reverse}
+        .dp-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(16,185,129,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,0.022) 1px,transparent 1px);background-size:52px 52px;mask-image:radial-gradient(ellipse 75% 65% at 65% 20%,rgba(0,0,0,0.3) 0%,transparent 80%)}
+        @keyframes orbDrift{from{transform:translate(0,0)}to{transform:translate(22px,-30px)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes rowIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes livePulse{0%,100%{box-shadow:0 0 0 2px rgba(16,185,129,0.1)}50%{box-shadow:0 0 0 5px rgba(16,185,129,0.05)}}
+
+        .dp-page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:2rem 2rem 4rem}
+        @media(max-width:768px){.dp-page{padding:1.25rem 1rem 3rem}}
+
+        .dp-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;animation:slideDown .5s cubic-bezier(.16,1,.3,1) both}
+        .dp-eyebrow{display:flex;align-items:center;gap:.45rem;font-size:.6875rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem}
+        .dp-live{width:7px;height:7px;border-radius:50%;background:var(--green-lt);flex-shrink:0;animation:livePulse 2.5s ease-in-out infinite}
+        .dp-title{font-size:1.875rem;font-weight:800;letter-spacing:-.04em;color:var(--tx1);line-height:1;margin-bottom:.25rem}
+        .dp-sub{font-size:.8125rem;color:var(--tx3)}
+        .dp-header-actions{display:flex;align-items:center;gap:.625rem;margin-top:.25rem}
+
+        .dp-refresh-btn{width:38px;height:38px;border-radius:10px;background:var(--white);border:1.5px solid var(--rim-md);color:var(--tx3);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-sm);transition:all .18s}
+        .dp-refresh-btn:hover{color:var(--green);border-color:var(--rim-hi);transform:rotate(180deg)}
+
+        .dp-new-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.6rem 1.25rem;border-radius:11px;background:linear-gradient(135deg,#059669,#0d9488);color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:.8125rem;font-weight:700;border:none;cursor:pointer;text-decoration:none;box-shadow:0 2px 10px rgba(5,150,105,.28);transition:all .2s;position:relative;overflow:hidden;white-space:nowrap}
+        .dp-new-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,0.18) 50%,transparent 65%);transform:translateX(-100%);transition:transform .5s ease}
+        .dp-new-btn:hover::before{transform:translateX(100%)}
+        .dp-new-btn:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(5,150,105,.3)}
+        .dp-new-btn-lg{margin-top:.25rem;padding:.625rem 1.375rem;font-size:.875rem}
+
+        .dp-toolbar{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;animation:fadeUp .45s cubic-bezier(.16,1,.3,1) .1s both}
+        .dp-search-wrap{position:relative;flex:1;min-width:220px;max-width:420px}
+        .dp-search-ic{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--tx3);pointer-events:none}
+        .dp-search{width:100%;padding:.575rem 2.25rem .575rem 2.25rem;border-radius:11px;background:var(--white);border:1.5px solid var(--rim-md);font-family:'Plus Jakarta Sans',sans-serif;font-size:.8125rem;color:var(--tx1);outline:none;box-shadow:var(--sh-sm);transition:border-color .18s,box-shadow .18s}
+        .dp-search::placeholder{color:var(--tx3)}
+        .dp-search:focus{border-color:var(--green-lt);box-shadow:0 0 0 3px rgba(16,185,129,.12);background:var(--white)}
+        .dp-search-clear{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--tx3);display:flex;transition:color .12s}
+        .dp-search-clear:hover{color:var(--tx2)}
+        .dp-count-hint{font-size:.75rem;font-weight:600;color:var(--tx3);white-space:nowrap}
+
+        .dp-clear-btn{display:inline-flex;align-items:center;gap:.3rem;padding:.5rem 1rem;border-radius:9px;background:rgba(5,150,105,.07);border:1px solid rgba(5,150,105,.2);color:var(--green);font-family:'Plus Jakarta Sans',sans-serif;font-size:.8125rem;font-weight:700;cursor:pointer;transition:all .15s}
+        .dp-clear-btn:hover{background:rgba(5,150,105,.13)}
+
+        .dp-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:5rem 1rem;animation:fadeUp .6s cubic-bezier(.16,1,.3,1) both}
+        .dp-empty-ic{width:72px;height:72px;border-radius:20px;background:var(--white);border:1.5px solid var(--rim-md);color:var(--tx3);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;box-shadow:var(--sh-md)}
+        .dp-empty-title{font-size:1.0625rem;font-weight:700;color:var(--tx1);margin-bottom:.4rem}
+        .dp-empty-sub{font-size:.875rem;color:var(--tx3);max-width:28rem;line-height:1.65;margin-bottom:1.25rem}
+
+        .dp-table-card{background:var(--white);border:1.5px solid var(--rim);border-radius:20px;overflow:hidden;box-shadow:var(--sh-sm);animation:fadeUp .5s cubic-bezier(.16,1,.3,1) .18s both}
+        .dp-table-head{display:grid;grid-template-columns:130px 1.6fr 2fr 90px 130px 140px;gap:10px;padding:.625rem 1.375rem;background:var(--bg2);border-bottom:1px solid var(--rim-md)}
+        .dp-table-head span{font-size:.575rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3)}
+        @media(max-width:900px){.dp-table-head{display:none}}
+
+        .dp-table-body{display:flex;flex-direction:column}
+        .dp-row{display:grid;grid-template-columns:130px 1.6fr 2fr 90px 130px 140px;gap:10px;align-items:center;padding:.9rem 1.375rem;border-bottom:1px solid var(--rim);transition:background .14s;animation:rowIn .4s cubic-bezier(.16,1,.3,1) both}
+        .dp-row:last-child{border-bottom:none}
+        .dp-row:hover{background:rgba(16,185,129,.025)}
+        @media(max-width:900px){.dp-row{grid-template-columns:1fr;gap:.625rem;padding:1rem 1.25rem}}
+
+        .dp-row-rx{display:flex;align-items:center;gap:.5rem}
+        .dp-rx-ic{width:30px;height:30px;border-radius:8px;background:var(--green-dim);border:1px solid rgba(5,150,105,.2);color:var(--green);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .dp-rx-num{display:block;font-size:.8125rem;font-weight:800;color:var(--tx1);font-family:'DM Mono',monospace;letter-spacing:.02em}
+        .dp-rx-sub{display:flex;align-items:center;gap:2px;font-size:.625rem;color:var(--tx3);font-family:'DM Mono',monospace}
+
+        .dp-row-patient{display:flex;align-items:center;gap:.625rem;min-width:0}
+        .dp-row-av{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .dp-patient-name{font-size:.875rem;font-weight:700;color:var(--tx1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+
+        .dp-row-diag{min-width:0}
+        .dp-diag-text{font-size:.875rem;color:var(--tx2);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+        .dp-med-chip{display:inline-flex;align-items:center;padding:.22rem .65rem;border-radius:999px;background:var(--teal-dim);border:1px solid rgba(13,148,136,.2);font-size:.6875rem;font-weight:700;color:var(--teal)}
+        .dp-med-none{font-size:.8125rem;color:var(--tx3)}
+
+        .dp-row-date{display:flex;align-items:center;gap:.35rem;font-size:.8125rem;font-weight:500;color:var(--tx2);font-family:'DM Mono',monospace;white-space:nowrap}
+        .dp-date-ic{color:var(--tx3);flex-shrink:0}
+
+        .dp-dl-btn{display:inline-flex;align-items:center;gap:.375rem;padding:.45rem .9rem;border-radius:9px;background:var(--white);border:1.5px solid var(--rim-md);color:var(--tx2);font-family:'Plus Jakarta Sans',sans-serif;font-size:.75rem;font-weight:700;cursor:pointer;box-shadow:var(--sh-sm);transition:all .18s;white-space:nowrap}
+        .dp-dl-btn:hover{background:var(--green);color:#fff;border-color:var(--green);box-shadow:0 4px 12px rgba(5,150,105,.25);transform:translateY(-1px)}
+        .dp-dl-btn:disabled{opacity:.6;cursor:not-allowed;transform:none}
+        .dp-dl-loading{background:var(--bg)!important;color:var(--tx3)!important;border-color:var(--rim)!important}
+        .dp-spin{width:11px;height:11px;border-radius:50%;border:2px solid rgba(5,150,105,.2);border-top-color:var(--green);animation:spin .8s linear infinite;display:inline-block}
+      `}</style>
     </div>
   )
 }
