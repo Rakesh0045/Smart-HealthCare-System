@@ -116,25 +116,24 @@ export default function DoctorPatients() {
             </p>
           </div>
         </header>
-        <div className="dp-header-actions">
-          <button className="dp-refresh-btn" onClick={load} title="Refresh">
-            <RefreshCw size={14} />
-          </button>
-        </div>
+
 
         {/* ══ STATS STRIP ══ */}
         <div className="dp-stats-strip">
           {[
-            { icon: <Users size={16} />,    label: 'Total Patients', val: rows.length,    color: 'green'   },
-            { icon: <Activity size={16} />, label: 'Total Visits',   val: totalVisits,    color: 'teal'    },
-            { icon: <Star size={16} />,     label: 'New (30 days)',  val: newPatients,    color: 'emerald' },
-            { icon: <TrendingUp size={16}/>,label: 'Repeat Patients',val: repeatPatients, color: 'cyan'    },
+            { label: 'Total Patients', val: rows.length, icon: Users, bg: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)' },
+            { label: 'Total Visits', val: totalVisits, icon: Activity, bg: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)' },
+            { label: 'Unique Patients', val: rows.length, icon: Star, bg: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)' },
+            { label: 'Recent Activity', val: newPatients, icon: TrendingUp, bg: 'linear-gradient(135deg, #ea580c 0%, #f97316 100%)' },
           ].map((s, i) => (
-            <div key={s.label} className={`dp-stat-card dp-stat-${s.color}`} style={{ animationDelay: `${i * 0.07}s` }}>
-              <div className="dp-stat-ic">{s.icon}</div>
-              <div>
-                <p className="dp-stat-val">{s.val}</p>
-                <p className="dp-stat-lbl">{s.label}</p>
+            <div key={s.label} style={{ background: s.bg, borderRadius: 14, padding: '14px 16px', position: 'relative', overflow: 'hidden', animation: `fadeUp .5s cubic-bezier(.16,1,.3,1) ${i * 0.08}s both` }}>
+              <div style={{ position: 'absolute', top: -18, right: -18, width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                  <s.icon size={13} color="white" strokeWidth={2.5} />
+                </div>
+                <p style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,.7)', textTransform: 'uppercase', letterSpacing: '.07em', margin: '0 0 3px' }}>{s.label}</p>
+                <p style={{ fontSize: 22, fontWeight: 700, color: 'white', margin: 0, lineHeight: 1 }}>{s.val}</p>
               </div>
             </div>
           ))}
@@ -199,11 +198,7 @@ export default function DoctorPatients() {
                     </div>
                     <div className="dp-row-patient-info">
                       <span className="dp-row-name">{r.patientName}</span>
-                      <span className="dp-row-id">
-                        <Hash size={9} />#{r.patientId}
-                        {r.isNew && <span className="dp-new-tag">New</span>}
-                        {r.visitCount > 1 && <span className="dp-repeat-tag">Returning</span>}
-                      </span>
+                      <span className="dp-row-id"><Hash size={9} />#{r.patientId}</span>
                     </div>
                   </div>
 
@@ -276,27 +271,15 @@ export default function DoctorPatients() {
         .dp-page{position:relative;z-index:1;max-width:1200px;margin:0 auto;padding:2rem 2rem 4rem}
         @media(max-width:768px){.dp-page{padding:1.25rem 1rem 3rem}}
 
-        .dp-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;animation:slideDown .5s cubic-bezier(.16,1,.3,1) both}
-        .dp-eyebrow{display:flex;align-items:center;gap:.45rem;font-size:.6875rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.3rem}
-        .dp-live{width:7px;height:7px;border-radius:50%;background:var(--green-lt);flex-shrink:0;animation:livePulse 2.5s ease-in-out infinite}
-        .dp-title{font-size:1.875rem;font-weight:800;letter-spacing:-.04em;color:var(--tx1);line-height:1;margin-bottom:.25rem}
-        .dp-sub{font-size:.8125rem;color:var(--tx3)}
-  .dp-header-actions{display:flex;align-items:center;gap:.625rem;margin-top:.25rem}
+        .dp-header{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:2rem;animation:slideDown .5s cubic-bezier(.16,1,.3,1) both}
+        .dp-eyebrow{display:flex;align-items:center;gap:.35rem;font-size:.65rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:.4rem}
+        .dp-live{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0;animation:livePulse 2.5s ease-in-out infinite}
+        .dp-title{font-size:2rem;font-weight:700;letter-spacing:-.01em;color:var(--tx1);line-height:1.2;margin-bottom:.3rem}
+        .dp-sub{font-size:.875rem;color:var(--tx2);line-height:1.4}
 
-  .dp-refresh-btn{width:38px;height:38px;border-radius:10px;background:var(--white);border:1.5px solid var(--rim-md);color:var(--tx3);cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-sm);transition:all .18s}
-  .dp-refresh-btn:hover{color:var(--green);border-color:var(--rim-hi);transform:rotate(180deg)}
 
-        .dp-stats-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;margin-bottom:1.25rem;animation:fadeUp .5s cubic-bezier(.16,1,.3,1) .08s both}
-        @media(max-width:700px){.dp-stats-strip{grid-template-columns:repeat(2,1fr)}}
-        .dp-stat-card{display:flex;align-items:center;gap:.875rem;padding:.9rem 1.1rem;border-radius:16px;background:var(--white);border:1.5px solid var(--rim);box-shadow:var(--sh-sm);animation:fadeUp .5s cubic-bezier(.16,1,.3,1) both;transition:transform .2s,box-shadow .2s}
-        .dp-stat-card:hover{transform:translateY(-2px);box-shadow:var(--sh-md)}
-        .dp-stat-ic{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-        .dp-stat-green   .dp-stat-ic{background:var(--green-dim);border:1px solid rgba(5,150,105,.18);color:var(--green)}
-        .dp-stat-teal    .dp-stat-ic{background:var(--teal-dim);border:1px solid rgba(13,148,136,.18);color:var(--teal)}
-        .dp-stat-emerald .dp-stat-ic{background:rgba(4,120,87,.07);border:1px solid rgba(4,120,87,.18);color:var(--emerald)}
-        .dp-stat-cyan    .dp-stat-ic{background:var(--cyan-dim);border:1px solid rgba(8,145,178,.18);color:var(--cyan)}
-        .dp-stat-val{font-size:1.625rem;font-weight:800;letter-spacing:-.04em;color:var(--tx1);line-height:1;margin-bottom:2px;font-family:'DM Mono',monospace}
-        .dp-stat-lbl{font-size:.6875rem;font-weight:500;color:var(--tx3);white-space:nowrap}
+        .dp-stats-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:20px;animation:fadeUp .5s cubic-bezier(.16,1,.3,1) .08s both}
+        @media(max-width:700px){.dp-stats-strip{grid-template-columns:repeat(2,1fr);gap:12px}}
 
         .dp-toolbar{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem;animation:fadeUp .45s cubic-bezier(.16,1,.3,1) .1s both}
         .dp-search-wrap{position:relative;flex:1;min-width:200px;max-width:360px}
@@ -307,11 +290,11 @@ export default function DoctorPatients() {
         .dp-search-clear{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--tx3);display:flex;transition:color .12s}
         .dp-search-clear:hover{color:var(--tx2)}
 
-        .dp-sort-wrap{display:flex;align-items:center;gap:.3rem;background:var(--white);border:1.5px solid var(--rim-md);border-radius:11px;padding:.3rem;box-shadow:var(--sh-sm)}
-        .dp-sort-label{font-size:.6875rem;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;padding:.1rem .5rem}
-        .dp-sort-btn{padding:.35rem .75rem;border-radius:7px;font-size:.75rem;font-weight:600;font-family:'Plus Jakarta Sans',sans-serif;color:var(--tx3);background:none;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
-        .dp-sort-btn:hover{color:var(--tx2);background:var(--bg2)}
-        .dp-sort-active{background:var(--white)!important;color:var(--green)!important;box-shadow:var(--sh-sm)}
+        .dp-sort-wrap{display:flex;align-items:center;gap:.2rem;background:var(--white);border:1px solid #e5e7eb;border-radius:10px;padding:.25rem;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+        .dp-sort-label{font-size:.65rem;font-weight:600;color:var(--tx3);text-transform:uppercase;letter-spacing:.1em;padding:.1rem .4rem}
+        .dp-sort-btn{padding:.3rem .7rem;border-radius:7px;font-size:.75rem;font-weight:500;font-family:'Plus Jakarta Sans',sans-serif;color:var(--tx2);background:none;border:none;cursor:pointer;transition:all .15s;white-space:nowrap}
+        .dp-sort-btn:hover{color:var(--green);background:#f9fafb}
+        .dp-sort-active{background:var(--white)!important;color:var(--green)!important;border:1px solid var(--green)!important;box-shadow:0 1px 2px rgba(5,150,105,.1)}
         .dp-count-hint{font-size:.75rem;font-weight:600;color:var(--tx3);margin-left:auto;white-space:nowrap}
 
         .dp-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:5rem 1rem;animation:fadeUp .6s cubic-bezier(.16,1,.3,1) both}
@@ -321,15 +304,15 @@ export default function DoctorPatients() {
         .dp-clear-btn{display:inline-flex;align-items:center;gap:.3rem;padding:.5rem 1rem;border-radius:9px;background:rgba(5,150,105,.07);border:1px solid rgba(5,150,105,.2);color:var(--green);font-family:'Plus Jakarta Sans',sans-serif;font-size:.8125rem;font-weight:700;cursor:pointer;transition:all .15s}
         .dp-clear-btn:hover{background:rgba(5,150,105,.13)}
 
-        .dp-table-card{background:var(--white);border:1.5px solid var(--rim);border-radius:20px;overflow:hidden;box-shadow:var(--sh-sm);animation:fadeUp .5s cubic-bezier(.16,1,.3,1) .18s both}
-        .dp-table-head{display:grid;grid-template-columns:2fr 2.2fr 120px 120px 80px;gap:10px;padding:.625rem 1.375rem;background:var(--bg2);border-bottom:1px solid var(--rim-md)}
-        .dp-table-head span{font-size:.575rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3)}
+        .dp-table-card{background:var(--white);border:1px solid #e5e7eb;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.05);animation:fadeUp .5s cubic-bezier(.16,1,.3,1) .18s both}
+        .dp-table-head{display:grid;grid-template-columns:2fr 2.2fr 120px 120px 80px;gap:10px;padding:1rem 1.375rem;background:#fafbfc;border-bottom:1px solid #e5e7eb}
+        .dp-table-head span{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--tx3)}
         @media(max-width:800px){.dp-table-head{display:none}}
 
         .dp-table-body{display:flex;flex-direction:column}
-        .dp-row{display:grid;grid-template-columns:2fr 2.2fr 120px 120px 80px;gap:10px;align-items:center;padding:.875rem 1.375rem;border-bottom:1px solid var(--rim);transition:background .14s;animation:rowIn .4s cubic-bezier(.16,1,.3,1) both}
+        .dp-row{display:grid;grid-template-columns:2fr 2.2fr 120px 120px 80px;gap:10px;align-items:center;padding:1rem 1.375rem;border-bottom:1px solid #f0f1f3;transition:background .15s;animation:rowIn .4s cubic-bezier(.16,1,.3,1) both}
         .dp-row:last-child{border-bottom:none}
-        .dp-row:hover{background:rgba(16,185,129,.025)}
+        .dp-row:hover{background:#f9fafb}
         @media(max-width:800px){.dp-row{grid-template-columns:1fr;gap:.5rem;padding:1rem 1.25rem}}
 
         .dp-row-patient{display:flex;align-items:center;gap:.7rem;min-width:0}
@@ -339,8 +322,6 @@ export default function DoctorPatients() {
         .dp-row-patient-info{min-width:0;display:flex;flex-direction:column;gap:2px}
         .dp-row-name{font-size:.9375rem;font-weight:700;color:var(--tx1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .dp-row-id{display:flex;align-items:center;gap:.35rem;font-size:.6rem;color:var(--tx3);font-weight:600;font-family:'DM Mono',monospace}
-        .dp-new-tag{background:rgba(5,150,105,.1);border:1px solid rgba(5,150,105,.22);color:var(--green);font-size:.55rem;font-weight:800;padding:.08rem .35rem;border-radius:4px;text-transform:uppercase;letter-spacing:.06em}
-        .dp-repeat-tag{background:rgba(13,148,136,.1);border:1px solid rgba(13,148,136,.22);color:var(--teal);font-size:.55rem;font-weight:800;padding:.08rem .35rem;border-radius:4px;text-transform:uppercase;letter-spacing:.06em}
 
         .dp-row-contact{display:flex;flex-direction:column;gap:.3rem;min-width:0}
         .dp-contact-link{display:flex;align-items:center;gap:.35rem;font-size:.8125rem;font-weight:500;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .14s}
@@ -351,9 +332,9 @@ export default function DoctorPatients() {
         .dp-row-date{display:flex;align-items:center;gap:.375rem;font-size:.8125rem;font-weight:500;color:var(--tx2);font-family:'DM Mono',monospace;white-space:nowrap}
         .dp-date-ic{color:var(--tx3);flex-shrink:0}
 
-        .dp-row-visits{display:flex;align-items:center;gap:.4rem}
-        .dp-visit-badge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:8px;background:var(--green-dim);border:1px solid rgba(5,150,105,.22);color:var(--green);font-size:.875rem;font-weight:800;font-family:'DM Mono',monospace}
-        .dp-visit-label{font-size:.6875rem;color:var(--tx3);font-weight:500}
+        .dp-row-visits{display:flex;align-items:center;gap:.35rem}
+        .dp-visit-badge{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:6px;background:var(--green-dim);border:1px solid rgba(5,150,105,.22);color:var(--green);font-size:.75rem;font-weight:700;font-family:'DM Mono',monospace}
+        .dp-visit-label{font-size:.65rem;color:var(--tx3);font-weight:500}
       `}</style>
     </div>
   )
