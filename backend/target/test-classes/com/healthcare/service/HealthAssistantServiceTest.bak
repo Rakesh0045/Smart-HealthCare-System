@@ -1,0 +1,133 @@
+package com.healthcare.service;
+
+import com.healthcare.dto.request.ChatRequest;
+import com.healthcare.entity.*;
+import com.healthcare.enums.EpisodeStatus;
+import com.healthcare.enums.MedicalRecordType;
+import com.healthcare.enums.Role;
+import com.healthcare.repository.MedicalRecordRepository;
+import com.healthcare.repository.TreatmentEpisodeRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class HealthAssistantServiceTest {
+
+    @Mock
+    private TreatmentEpisodeRepository episodeRepo;
+    @Mock
+    private MedicalRecordRepository recordRepo;
+    @Mock
+    private AuditLogService auditLogService;
+
+    @InjectMocks
+    private HealthAssistantService healthAssistantService;
+
+    private User patientUser;
+    private Patient patient;
+    private TreatmentEpisode episode;
+    private MedicalRecord record1;
+    private MedicalRecord record2;
+
+    @BeforeEach
+    void setUp() {
+        patientUser = new User();
+        patientUser.setId(1L);
+        patientUser.setRole(Role.PATIENT);
+        patientUser.setName("John Doe");
+
+        patient = new Patient();
+        patient.setId(1L);
+        patient.setUser(patientUser);
+
+        episode = new TreatmentEpisode();
+        episode.setId(1L);
+        episode.setPatient(patient);
+        episode.setEpisodeName("Hypertension");
+        episode.setPrimaryDiagnosis("Hypertension");
+        episode.setStatus(EpisodeStatus.ACTIVE);
+        episode.setAiLifestyleAdvice("{\"dietRecommendations\":[\"Low sodium\"]}");
+        episode.setAiGeneratedAt(LocalDateTime.now());
+
+        record1 = new MedicalRecord();
+        record1.setId(1L);
+        record1.setPatient(patient);
+        record1.setRecordType(MedicalRecordType.LAB_RESULT);
+        record1.setTitle("BP Check");
+        record1.setSummary("BP: 140/90");
+        record1.setRecordDate(LocalDateTime.now().minusDays(7));
+
+        record2 = new MedicalRecord();
+        record2.setId(2L);
+        record2.setPatient(patient);
+        record2.setRecordType(MedicalRecordType.LAB_RESULT);
+        record2.setTitle("Blood Test");
+        record2.setSummary("Cholesterol slightly elevated");
+        record2.setRecordDate(LocalDateTime.now().minusDays(14));
+    }
+
+    @Test
+    void chat_withEpisode_includesEpisodeContext() {
+        ChatRequest request = new ChatRequest();
+        request.setPatientId(1L);
+        request.setMessage("What should I eat?");
+        request.setEpisodeId(1L);
+
+        when(episodeRepo.findById(1L)).thenReturn(Optional.of(episode));
+        when(recordRepo.findTop5ByPatientIdOrderByRecordDateDesc(1L))
+                .thenReturn(Arrays.asList(record1, record2));
+
+        var result = healthAssistantService.chat(request, 1L);
+
+        assertNotNull(result);
+        assertEquals("I'm your Health Assistant. For personalized advice about your Hypertension episode, please consult your doctor alongside these general suggestions: maintain a balanced diet, exercise regularly, and follow your prescribed treatment plan.", result.getReply());
+        assertFalse(result.isError());
+        assertNotNull(result.getCitations());
+        assertEquals(2, result.getCitations().size());
+        verify(auditLogService).logEvent(1L, "HEALTH_ASSISTANT_CHAT",
+                "Patient 1 chatted with health assistant for episode 1");
+    }
+
+    @Test
+    void chat_withoutEpisode_usesGeneralContext() {
+        ChatRequest request = new ChatRequest();
+        request.setPatientId(1L);
+        request.setMessage("General health tips");
+
+        when(recordRepo.findTop5ByPatientIdOrderByRecordDateDesc(1L))
+                .thenReturn(Collections.singletonList(record1));
+
+        var result = healthAssistantService.chat(request, 1L);
+
+        assertNotNull(result);
+        assertTrue(result.getReply().contains("general health guidance"));
+        assertFalse(result.isError());
+    }
+
+    @Test
+    void chat_episodeNotFound_returnsError() {
+        ChatRequest request = new ChatRequest();
+        request.setPatientId(1L);
+        request.setMessage("Question");
+        request.setEpisodeId(99L);
+
+        when(episodeRepo.findById(99L)).thenReturn(Optional.empty());
+
+        var result = healthAssistantService.chat(request, 1L);
+
+        assertTrue(result.isError());
+        assertTrue(result.getReply().contains("not found"));
+    }
+}

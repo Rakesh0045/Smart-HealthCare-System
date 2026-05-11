@@ -1,0 +1,148 @@
+package com.healthcare.service;
+
+import com.healthcare.dto.request.EpisodeStatusTransitionRequest;
+import com.healthcare.dto.response.MedicalRecordResponse;
+import com.healthcare.entity.MedicalRecord;
+import com.healthcare.entity.Patient;
+import com.healthcare.entity.TreatmentEpisode;
+import com.healthcare.entity.User;
+import com.healthcare.enums.EpisodeStatus;
+import com.healthcare.enums.MedicalRecordType;
+import com.healthcare.enums.Role;
+import com.healthcare.exception.ResourceNotFoundException;
+import com.healthcare.repository.MedicalRecordRepository;
+import com.healthcare.repository.TreatmentEpisodeRepository;
+import com.healthcare.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class TreatmentEpisodeServiceTest {
+
+    @Mock
+    private TreatmentEpisodeRepository episodeRepo;
+    @Mock
+    private MedicalRecordRepository recordRepo;
+    @Mock
+    private UserRepository userRepo;
+    @Mock
+    private AuditLogService auditLogService;
+
+    @InjectMocks
+    private TreatmentEpisodeService episodeService;
+
+    private User doctor;
+    private User patientUser;
+    private Patient patient;
+    private TreatmentEpisode episode;
+    private MedicalRecord record;
+
+    @BeforeEach
+    void setUp() {
+        doctor = new User();
+        doctor.setId(1L);
+        doctor.setRole(Role.DOCTOR);
+
+        patientUser = new User();
+        patientUser.setId(2L);
+        patientUser.setRole(Role.PATIENT);
+
+        patient = new Patient();
+        patient.setId(1L);
+        patient.setUser(patientUser);
+
+        episode = new TreatmentEpisode();
+        episode.setId(1L);
+        episode.setPatient(patient);
+        episode.setDoctor(doctor);
+        episode.setEpisodeName("Hypertension Management");
+        episode.setStatus(EpisodeStatus.ACTIVE);
+        episode.setStartDate(LocalDateTime.now());
+
+        record = new MedicalRecord();
+        record.setId(1L);
+        record.setPatient(patient);
+        record.setDoctor(doctor);
+        record.setRecordType(MedicalRecordType.LAB_RESULT);
+        record.setTitle("Blood Test");
+        record.setRecordDate(LocalDateTime.now());
+    }
+
+    @Test
+    void linkRecordToEpisode_success() {
+        when(userRepo.findById(1L)).thenReturn(Optional.of(doctor));
+        when(episodeRepo.findById(1L)).thenReturn(Optional.of(episode));
+        when(recordRepo.findById(1L)).thenReturn(Optional.of(record));
+        when(recordRepo.save(any())).thenReturn(record);
+
+        MedicalRecordResponse result = episodeService.linkRecordToEpisode(1L, 1L, 1L);
+
+        assertNotNull(result);
+        assertEquals(1L, result.getEpisodeId());
+        verify(recordRepo).save(record);
+        verify(auditLogService).logEvent(1L, "RECORD_LINKED_TO_EPISODE", "Linked record 1 to episode 1");
+    }
+
+    @Test
+    void linkRecordToEpisode_notFound_throws() {
+        when(userRepo.findById(1L)).thenReturn(Optional.of(doctor));
+        when(episodeRepo.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> episodeService.linkRecordToEpisode(99L, 1L, 1L));
+    }
+
+    @Test
+    void transitionEpisodeStatus_success() {
+        when(userRepo.findById(1L)).thenReturn(Optional.of(doctor));
+        when(episodeRepo.findById(1L)).thenReturn(Optional.of(episode));
+        when(episodeRepo.save(any())).thenReturn(episode);
+
+        TreatmentEpisode result = episodeService.transitionEpisodeStatus(1L,
+                EpisodeStatusTransitionRequest.builder().status("RESOLVED").build(), 1L);
+
+        assertEquals(EpisodeStatus.RESOLVED, result.getStatus());
+        verify(auditLogService).logEvent(1L, "EPISODE_STATUS_TRANSITION",
+                "Transitioned episode 1 from ACTIVE to RESOLVED");
+    }
+
+    @Test
+    void getLinkedRecords_success() {
+        when(episodeRepo.findById(1L)).thenReturn(Optional.of(episode));
+        when(recordRepo.findByEpisode(episode)).thenReturn(Collections.singletonList(record));
+
+        var result = episodeService.getLinkedRecords(1L, 2L);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void autoLinkRecord_samePatientAndDate_matches() {
+        TreatmentEpisode activeEpisode = new TreatmentEpisode();
+        activeEpisode.setId(2L);
+        activeEpisode.setPatient(patient);
+        activeEpisode.setStatus(EpisodeStatus.ACTIVE);
+        activeEpisode.setStartDate(LocalDateTime.now().minusDays(5));
+        activeEpisode.setEndDate(null);
+
+        when(episodeRepo.findByPatientAndStatusIn(any(), any()))
+                .thenReturn(Collections.singletonList(activeEpisode));
+        when(recordRepo.save(any())).thenReturn(record);
+
+        episodeService.autoLinkRecord(record);
+
+        assertEquals(2L, record.getEpisode().getId());
+    }
+}

@@ -171,7 +171,7 @@ export default function PatientDashboard() {
       }
       const rzp = new window.Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency,
-        name: 'Smart Healthcare', description: `Appointment payment`,
+        name: 'MediCare', description: `Appointment payment`,
         order_id: order.orderId,
         handler: async (response: any) => {
           await paymentApi.verify({

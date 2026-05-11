@@ -266,7 +266,7 @@ export default function BookAppointment() {
       }
       const rzp = new window.Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency,
-        name: 'Smart Healthcare', description: `Appointment with Dr. ${selectedDoctor.name}`,
+        name: 'MediCare', description: `Appointment with Dr. ${selectedDoctor.name}`,
         order_id: order.orderId,
         handler: async (response: any) => {
           await paymentApi.verify({

@@ -120,6 +120,48 @@ CREATE TABLE IF NOT EXISTS prescriptions (
     FOREIGN KEY (patient_id) REFERENCES patients(id)
 ) ENGINE=InnoDB;
 
+-- Medical Histories (structured summary per patient)
+CREATE TABLE IF NOT EXISTS medical_histories (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    patient_id BIGINT NOT NULL UNIQUE,
+    summary TEXT,
+    conditions JSON,
+    medications JSON,
+    allergies_summary TEXT,
+    last_synced_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Medical Records
+CREATE TABLE IF NOT EXISTS medical_records (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    patient_id BIGINT NOT NULL,
+    doctor_id BIGINT NOT NULL,
+    appointment_id BIGINT,
+    episode_id BIGINT,
+    record_type ENUM('MEDICAL_HISTORY','LAB_RESULT','IMAGING_REPORT','DIAGNOSTIC_TEST','VACCINATION','OTHER') NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    summary TEXT,
+    details TEXT,
+    record_date DATE NOT NULL,
+    attachment_url VARCHAR(500),
+    record_group_key VARCHAR(36) NOT NULL,
+    version_number INT DEFAULT 1,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_med_rec_patient (patient_id),
+    INDEX idx_med_rec_doctor (doctor_id),
+    INDEX idx_med_rec_type (record_type),
+    INDEX idx_med_rec_date (record_date),
+    INDEX idx_med_rec_episode (episode_id),
+    FOREIGN KEY (patient_id) REFERENCES patients(id) ON DELETE CASCADE,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
+    FOREIGN KEY (episode_id) REFERENCES treatment_episodes(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- Prescription Medicines
 CREATE TABLE IF NOT EXISTS prescription_medicines (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,

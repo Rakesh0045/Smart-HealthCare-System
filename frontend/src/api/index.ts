@@ -170,6 +170,13 @@ export const prescriptionApi = {
   downloadPdf: (id: number) => api.get(`/prescriptions/${id}/download`, { responseType: 'blob' }),
 }
 
+export const medicalRecordApi = {
+  create: (data: any) => api.post('/medical-records', data),
+  getMy: () => api.get('/medical-records/my'),
+  getPatientTimeline: (patientId: number) => api.get(`/medical-records/patient/${patientId}`),
+  linkToEpisode: (id: number, data: { episodeId: number }) => api.patch(`/medical-records/${id}/link`, data),
+}
+
 export const paymentApi = {
   createOrder: (appointmentId: number) => api.post(`/payments/create-order/${appointmentId}`),
   verify: (data: any) => api.post('/payments/verify', data),
@@ -191,6 +198,42 @@ export const patientApi = {
   getProfile: () => api.get('/patient/profile'),
   updateProfile: (data: any) => api.post('/patient/profile', data),
   rate: (data: any) => api.post('/patient/rate', data),
+  getMedicalHistory: (patientId: number) => api.get(`/patient/${patientId}/medical-history`),
+}
+
+export const treatmentEpisodeApi = {
+  getMy: () => api.get('/treatment-episodes/my'),
+  getById: (id: number) => api.get(`/treatment-episodes/${id}`),
+  create: (data: any) => api.post('/treatment-episodes', data),
+  update: (id: number, data: any) => api.put(`/treatment-episodes/${id}`, data),
+  addFollowup: (id: number, data: any) => api.post(`/treatment-episodes/${id}/followups`, data),
+  updateFollowupStatus: (followupId: number, status: string) => api.patch(`/treatment-episodes/followups/${followupId}/status`, null, { params: { status } }),
+  transitionStatus: (id: number, data: { status: string }) => api.post(`/treatment-episodes/${id}/status`, data),
+  getLinkedRecords: (id: number) => api.get(`/treatment-episodes/${id}/records`),
+  generateLifestyleAdvice: (id: number) => api.post(`/treatment-episodes/${id}/lifestyle-advice`),
+}
+
+export const assistantApi = {
+  chat: (data: {
+    patientId: number;
+    message: string;
+    episodeId?: number;
+    sessionId?: string;
+  }) => api.post('/assistant/chat', data),
+
+  generateEpisodeInsights: (episodeId: number) =>
+    api.post(`/assistant/episode/${episodeId}/insights`),
+
+  generateHistorySummary: (patientId: number) =>
+    api.post(`/assistant/patient/${patientId}/summary`),
+
+  clearSession: (sessionId: string) =>
+    api.delete(`/assistant/session/${sessionId}`),
+}
+
+export const analyticsApi = {
+  episodeSummary: (from: string, to: string) => api.get('/analytics/episodes/summary', { params: { from, to } }),
+  patientAnalytics: (patientId: number) => api.get(`/analytics/patient/${patientId}`),
 }
 
 export const adminApi = {

@@ -5,7 +5,7 @@ import { notificationApi, authApi } from '../../api'
 import {
   LayoutDashboard, Calendar, User, Bell, LogOut, Menu, X,
   Stethoscope, ClipboardList, Users, ScrollText, Shield,
-  FileText, Clock, Search, Brain
+  FileText, Clock, Search, Brain, Activity
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
@@ -15,8 +15,10 @@ const generateAvatarUrl = (name?: string) => `https://ui-avatars.com/api/?name=$
 const navConfig = {
   PATIENT: [
     { to: '/patient/dashboard', label: 'Overview', icon: LayoutDashboard, section: 'main' },
+    { to: '/patient/history', label: 'Medical History', icon: FileText, section: 'main' },
     { to: '/patient/book', label: 'Book Appointment', icon: Calendar, section: 'main' },
     { to: '/patient/appointments', label: 'My Appointments', icon: ClipboardList, section: 'main' },
+    { to: '/patient/episodes', label: 'Treatment Episodes', icon: Activity, section: 'main' },
     { to: '/patient/prescriptions', label: 'Prescriptions', icon: FileText, section: 'main' },
     { to: '/patient/symptom-checker', label: 'AI Symptom Checker', icon: Brain, section: 'tools' },
     { to: '/patient/doctors', label: 'Find Doctors', icon: Search, section: 'tools' },
@@ -24,6 +26,8 @@ const navConfig = {
   ],
   DOCTOR: [
     { to: '/doctor/dashboard', label: 'Overview', icon: LayoutDashboard, section: 'main' },
+    { to: '/doctor/history', label: 'Medical History', icon: Activity, section: 'main' },
+    { to: '/doctor/records', label: 'Medical Records', icon: ClipboardList, section: 'main' },
     { to: '/doctor/appointments', label: 'Appointments', icon: Calendar, section: 'main' },
     { to: '/doctor/patients', label: 'My Patients', icon: Users, section: 'main' },
     { to: '/doctor/prescriptions', label: 'Prescriptions', icon: FileText, section: 'main' },
@@ -152,11 +156,8 @@ export default function DashboardLayout() {
         {/* Logo */}
         <div style={{ padding: '24px 20px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${theme.accent}, ${theme.accentLight})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${theme.accent}40`, position: 'relative' }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${theme.accent}, ${theme.accentLight})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${theme.accent}40` }}>
-                <Stethoscope style={{ width: 18, height: 18, color: 'white' }} />
-              </div>
-
+            <div style={{ width: 40, height: 40, borderRadius: 10, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 12px ${theme.accent}30` }}>
+              <img src="/MediCare.png" alt="MediCare" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             </div>
             <div>
               <div style={{ fontSize: 15, fontWeight: 700, color: 'white', lineHeight: 1.2 }}>MediCare</div>

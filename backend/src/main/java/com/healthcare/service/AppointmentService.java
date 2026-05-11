@@ -31,6 +31,9 @@ public class AppointmentService {
     private final PrescriptionRepository prescriptionRepo;
     private final RatingRepository ratingRepo;
     private final PaymentRepository paymentRepo;
+    private final TreatmentEpisodeRepository episodeRepo;
+    private final EpisodeFollowupRepository followupRepo;
+    private final MedicalRecordRepository medicalRecordRepo;
     private final SlotGenerationService slotService;
     private final AppointmentSlipPdfService appointmentSlipPdfService;
     private final NotificationService notificationService;
@@ -209,6 +212,68 @@ public class AppointmentService {
             markClinicPaymentAsPaid(appointment);
         }
         appointment = appointmentRepo.save(appointment);
+
+        // --- AUTOMATED EPISODE & HISTORY FLOW ---
+        // 1. Check if this appointment is already part of an Episode
+        TreatmentEpisode episode = episodeRepo.findByPrimaryAppointmentId(appointment.getId()).orElse(null);
+        if (episode == null) {
+            List<EpisodeFollowup> followups = followupRepo.findByAppointmentId(appointment.getId());
+            if (!followups.isEmpty()) {
+                episode = followups.get(0).getEpisode();
+            } else {
+                // If not explicitly linked, intelligently auto-link to an ACTIVE episode with this same doctor
+                final Long currentDoctorId = appointment.getDoctor().getId();
+                List<TreatmentEpisode> activeEpisodes = episodeRepo.findByPatientIdAndStatus(appointment.getPatient().getId(), com.healthcare.enums.EpisodeStatus.ACTIVE)
+                        .stream().filter(e -> e.getDoctor().getId().equals(currentDoctorId)).toList();
+                
+                if (!activeEpisodes.isEmpty()) {
+                    episode = activeEpisodes.get(0); // Attach to the most recent active episode
+                    
+                    // Create the explicit link so it's formally tracked as a follow-up
+                    EpisodeFollowup autoFollowup = EpisodeFollowup.builder()
+                            .episode(episode)
+                            .appointment(appointment)
+                            .followupType(com.healthcare.enums.FollowupType.COMPLETED)
+                            .notes("Auto-linked follow-up appointment")
+                            .build();
+                    followupRepo.save(autoFollowup);
+                }
+            }
+        }
+
+        // 2. If no episode exists, create one
+        if (episode == null) {
+            String diagnosis = prescriptionRepo.findByAppointmentId(appointment.getId())
+                    .map(Prescription::getDiagnosis)
+                    .orElse("General Consultation");
+
+            episode = TreatmentEpisode.builder()
+                    .patient(appointment.getPatient())
+                    .doctor(appointment.getDoctor())
+                    .primaryAppointment(appointment)
+                    .episodeName(diagnosis + " - " + appointment.getAppointmentDate().format(DateTimeFormatter.ofPattern("MMM yyyy")))
+                    .primaryDiagnosis(diagnosis)
+                    .conditionCategory("General")
+                    .startDate(appointment.getAppointmentDate())
+                    .build();
+            episode = episodeRepo.save(episode);
+        }
+
+        // 3. Save Doctor's Notes as a MedicalRecord tied to the Episode
+        if (doctorNotes != null && !doctorNotes.isBlank()) {
+            MedicalRecord record = MedicalRecord.builder()
+                    .patient(appointment.getPatient())
+                    .doctor(appointment.getDoctor())
+                    .appointment(appointment)
+                    .episode(episode)
+                    .recordType(com.healthcare.enums.MedicalRecordType.MEDICAL_HISTORY)
+                    .title("Clinical Notes")
+                    .summary(doctorNotes)
+                    .recordDate(appointment.getAppointmentDate())
+                    .recordGroupKey(java.util.UUID.randomUUID().toString())
+                    .build();
+            medicalRecordRepo.save(record);
+        }
 
         auditLogService.log(userId, "APPOINTMENT_COMPLETED", "Appointment",
                 appointmentId, "Marked completed by Dr. " + appointment.getDoctor().getUser().getName());

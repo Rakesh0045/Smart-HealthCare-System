@@ -13,6 +13,7 @@ import java.util.List;
 
 @Repository
 public interface AppointmentRepository extends JpaRepository<Appointment, Long> {
+        @EntityGraph(attributePaths = { "doctor", "doctor.user" })
         List<Appointment> findByPatientIdOrderByAppointmentDateDescStartTimeDesc(Long patientId);
 
         List<Appointment> findByDoctorIdOrderByAppointmentDateAscStartTimeAsc(Long doctorId);

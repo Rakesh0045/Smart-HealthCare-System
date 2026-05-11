@@ -1,15 +1,20 @@
 package com.healthcare.service;
 
 import com.healthcare.dto.request.PatientProfileRequest;
+import com.healthcare.dto.response.MedicalHistoryResponse;
 import com.healthcare.dto.response.PatientResponse;
+import com.healthcare.entity.MedicalHistory;
 import com.healthcare.entity.Patient;
 import com.healthcare.entity.User;
 import com.healthcare.exception.ResourceNotFoundException;
+import com.healthcare.repository.MedicalHistoryRepository;
 import com.healthcare.repository.PatientRepository;
 import com.healthcare.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -18,6 +23,7 @@ public class PatientService {
 
     private final PatientRepository patientRepo;
     private final UserRepository userRepo;
+    private final MedicalHistoryRepository medicalHistoryRepo;
 
     @Transactional
     public PatientResponse createOrUpdateProfile(PatientProfileRequest req, Long userId) {
@@ -52,6 +58,37 @@ public class PatientService {
     @Transactional(readOnly = true)
     public List<PatientResponse> getAllPatients() {
         return patientRepo.findAll().stream().map(this::mapToResponse).toList();
+    }
+
+    @Transactional
+    public void syncMedicalHistorySummary(Long patientId) {
+        Patient patient = patientRepo.findById(patientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Patient", patientId));
+
+        MedicalHistory history = medicalHistoryRepo.findByPatientId(patientId)
+                .orElse(MedicalHistory.builder().patient(patient).build());
+
+        history.setSummary(patient.getMedicalHistory());
+        history.setAllergiesSummary(patient.getAllergies());
+        history.setLastSyncedAt(LocalDateTime.now());
+        medicalHistoryRepo.save(history);
+    }
+
+    @Transactional(readOnly = true)
+    public MedicalHistoryResponse getStructuredHistory(Long patientId) {
+        return medicalHistoryRepo.findByPatientId(patientId)
+                .map(h -> MedicalHistoryResponse.builder()
+                        .id(h.getId())
+                        .patientId(patientId)
+                        .summary(h.getSummary())
+                        .conditions(h.getConditions())
+                        .medications(h.getMedications())
+                        .allergiesSummary(h.getAllergiesSummary())
+                        .lastSyncedAt(h.getLastSyncedAt())
+                        .createdAt(h.getCreatedAt())
+                        .updatedAt(h.getUpdatedAt())
+                        .build())
+                .orElse(null);
     }
 
     public PatientResponse mapToResponse(Patient p) {

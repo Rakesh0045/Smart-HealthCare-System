@@ -7,6 +7,8 @@ import PatientDashboard from './pages/patient/PatientDashboard'
 import BookAppointment from './pages/patient/BookAppointment'
 import PatientAppointments from './pages/patient/PatientAppointments'
 import PatientPrescriptions from './pages/patient/PatientPrescriptions'
+import PatientMedicalHistory from './pages/patient/PatientMedicalHistory'
+import PatientTreatmentEpisodes from './pages/patient/PatientTreatmentEpisodes'
 import PatientProfile from './pages/patient/PatientProfile'
 import SymptomChecker from './pages/patient/SymptomChecker'
 import FindDoctors from './pages/patient/FindDoctors'
@@ -16,13 +18,17 @@ import DoctorSchedule from './pages/doctor/DoctorSchedule'
 import DoctorProfile from './pages/doctor/DoctorProfile'
 import AddPrescription from './pages/doctor/AddPrescription'
 import DoctorPrescriptionsList from './pages/doctor/DoctorPrescriptionsList'
+import DoctorMedicalRecords from './pages/doctor/DoctorMedicalRecords'
 import DoctorPatients from './pages/doctor/DoctorPatients'
+import DoctorMedicalHistory from './pages/doctor/DoctorMedicalHistory'
+import DoctorTreatmentEpisodes from './pages/doctor/DoctorTreatmentEpisodes'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import ManageDoctors from './pages/admin/ManageDoctors'
 import ManagePatients from './pages/admin/ManagePatients'
 import ManageUsers from './pages/admin/ManageUsers'
 import AuditLogs from './pages/admin/AuditLogs'
 import NotificationsPage from './pages/common/NotificationsPage'
+import LandingPage from './pages/common/LandingPage'
 
 function ProtectedRoute({ children, roles }: { children: React.ReactNode; roles?: string[] }) {
   const { isAuthenticated, user } = useAuthStore()
@@ -51,7 +57,8 @@ function RoleRedirect() {
 export default function App() {
   return (
     <Routes>
-      <Route path="/" element={<RoleRedirect />} />
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/dashboard" element={<RoleRedirect />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
@@ -59,7 +66,9 @@ export default function App() {
         <Route path="dashboard" element={<PatientDashboard />} />
         <Route path="book" element={<BookAppointment />} />
         <Route path="appointments" element={<PatientAppointments />} />
+        <Route path="episodes" element={<PatientTreatmentEpisodes />} />
         <Route path="prescriptions" element={<PatientPrescriptions />} />
+        <Route path="history" element={<PatientMedicalHistory />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="doctors" element={<FindDoctors />} />
         <Route path="symptom-checker" element={<SymptomChecker />} />
@@ -73,6 +82,8 @@ export default function App() {
         <Route path="schedule" element={<Navigate to="/doctor/availability" replace />} />
         <Route path="prescriptions" element={<DoctorPrescriptionsList />} />
         <Route path="prescriptions/new" element={<AddPrescription />} />
+        <Route path="history" element={<DoctorMedicalHistory />} />
+        <Route path="records" element={<DoctorMedicalRecords />} />
         <Route path="patients" element={<DoctorPatients />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="profile" element={<DoctorProfile />} />

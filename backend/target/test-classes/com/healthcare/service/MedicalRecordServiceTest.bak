@@ -1,0 +1,147 @@
+package com.healthcare.service;
+
+import com.healthcare.dto.request.MedicalRecordRequest;
+import com.healthcare.entity.*;
+import com.healthcare.enums.MedicalRecordType;
+import com.healthcare.enums.Role;
+import com.healthcare.exception.ResourceNotFoundException;
+import com.healthcare.repository.AppointmentRepository;
+import com.healthcare.repository.MedicalRecordRepository;
+import com.healthcare.repository.TreatmentEpisodeRepository;
+import com.healthcare.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class MedicalRecordServiceTest {
+
+    @Mock
+    private MedicalRecordRepository recordRepo;
+    @Mock
+    private AppointmentRepository appointmentRepo;
+    @Mock
+    private TreatmentEpisodeRepository episodeRepo;
+    @Mock
+    private UserRepository userRepo;
+    @Mock
+    private TreatmentEpisodeService episodeService;
+    @Mock
+    private AuditLogService auditLogService;
+
+    @InjectMocks
+    private MedicalRecordService recordService;
+
+    private User doctor;
+    private User patientUser;
+    private Patient patient;
+    private Appointment appointment;
+    private MedicalRecord record;
+    private TreatmentEpisode episode;
+
+    @BeforeEach
+    void setUp() {
+        doctor = new User();
+        doctor.setId(1L);
+        doctor.setRole(Role.DOCTOR);
+
+        patientUser = new User();
+        patientUser.setId(2L);
+        patientUser.setRole(Role.PATIENT);
+
+        patient = new Patient();
+        patient.setId(1L);
+        patient.setUser(patientUser);
+
+        appointment = new Appointment();
+        appointment.setId(1L);
+        appointment.setPatient(patient);
+        appointment.setDoctor(doctor);
+
+        episode = new TreatmentEpisode();
+        episode.setId(1L);
+        episode.setPatient(patient);
+        episode.setDoctor(doctor);
+        episode.setStatus(com.healthcare.enums.EpisodeStatus.ACTIVE);
+
+        record = new MedicalRecord();
+        record.setId(1L);
+        record.setPatient(patient);
+        record.setDoctor(doctor);
+        record.setAppointment(appointment);
+        record.setRecordType(MedicalRecordType.LAB_RESULT);
+        record.setTitle("Blood Test");
+        record.setSummary("Normal");
+        record.setRecordDate(LocalDateTime.now());
+        record.setVersionNumber(1);
+    }
+
+    @Test
+    void createMedicalRecord_withEpisodeId_linksToEpisode() {
+        MedicalRecordRequest request = new MedicalRecordRequest();
+        request.setPatientId(1L);
+        request.setAppointmentId(1L);
+        request.setRecordType(MedicalRecordType.LAB_RESULT);
+        request.setTitle("Blood Test");
+        request.setSummary("Normal");
+        request.setEpisodeId(1L);
+
+        when(userRepo.findById(1L)).thenReturn(Optional.of(doctor));
+        when(appointmentRepo.findById(1L)).thenReturn(Optional.of(appointment));
+        when(recordRepo.save(any())).thenReturn(record);
+        when(episodeRepo.findById(1L)).thenReturn(Optional.of(episode));
+
+        var result = recordService.createMedicalRecord(request, 1L);
+
+        assertNotNull(result);
+        verify(recordRepo).save(any(MedicalRecord.class));
+    }
+
+    @Test
+    void createMedicalRecord_withoutEpisodeId_triggersAutoLink() {
+        MedicalRecordRequest request = new MedicalRecordRequest();
+        request.setPatientId(1L);
+        request.setAppointmentId(1L);
+        request.setRecordType(MedicalRecordType.LAB_RESULT);
+        request.setTitle("Blood Test");
+        request.setSummary("Normal");
+
+        when(userRepo.findById(1L)).thenReturn(Optional.of(doctor));
+        when(appointmentRepo.findById(1L)).thenReturn(Optional.of(appointment));
+        when(recordRepo.save(any())).thenReturn(record);
+        when(episodeRepo.findByPatientAndStatusIn(any(), any())).thenReturn(Collections.singletonList(episode));
+
+        var result = recordService.createMedicalRecord(request, 1L);
+
+        assertNotNull(result);
+        verify(episodeService).autoLinkRecord(any(MedicalRecord.class));
+    }
+
+    @Test
+    void getRecordById_returnsRecord() {
+        when(recordRepo.findById(1L)).thenReturn(Optional.of(record));
+
+        var result = recordService.getRecordById(1L, 1L);
+
+        assertNotNull(result);
+        assertEquals("Blood Test", result.getTitle());
+    }
+
+    @Test
+    void getRecordById_notFound_throws() {
+        when(recordRepo.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> recordService.getRecordById(99L, 1L));
+    }
+}

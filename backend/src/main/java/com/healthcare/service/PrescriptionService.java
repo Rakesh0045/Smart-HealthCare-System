@@ -54,6 +54,7 @@ public class PrescriptionService {
         private final MedicationDoseLogRepository medicationDoseLogRepo;
         private final NotificationService notificationService;
         private final AuditLogService auditLogService;
+        private final TreatmentEpisodeService treatmentEpisodeService;
 
         // ─── Design System ────────────────────────────────────────────────────────
         private static final DeviceRgb INK          = new DeviceRgb(14, 17, 22);
@@ -114,6 +115,10 @@ public class PrescriptionService {
                 }
 
                 Prescription saved = prescriptionRepo.save(prescription);
+                
+                // Auto-create treatment episode
+                treatmentEpisodeService.autoCreateEpisodeFromPrescription(req.getAppointmentId(), doctorUserId);
+                
                 byte[] prescriptionPdf = generatePrescriptionPdf(saved.getId());
                 notificationService.sendPrescriptionNotification(
                                 appointment.getPatient().getUser(), appointment.getDoctor().getUser().getName(),

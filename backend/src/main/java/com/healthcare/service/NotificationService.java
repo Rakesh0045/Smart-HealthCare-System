@@ -1,4 +1,4 @@
-﻿package com.healthcare.service;
+package com.healthcare.service;
 
 import com.healthcare.entity.Notification;
 import com.healthcare.entity.Appointment;

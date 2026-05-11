@@ -1,0 +1,137 @@
+package com.healthcare.service;
+
+import com.healthcare.entity.Doctor;
+import com.healthcare.entity.Patient;
+import com.healthcare.entity.TreatmentEpisode;
+import com.healthcare.entity.User;
+import com.healthcare.enums.EpisodeStatus;
+import com.healthcare.enums.Role;
+import com.healthcare.repository.MedicalRecordRepository;
+import com.healthcare.repository.TreatmentEpisodeRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class AnalyticsServiceTest {
+
+    @Mock
+    private TreatmentEpisodeRepository episodeRepo;
+    @Mock
+    private MedicalRecordRepository recordRepo;
+
+    @InjectMocks
+    private AnalyticsService analyticsService;
+
+    private User doctorUser;
+    private Doctor doctor;
+    private User patientUser;
+    private Patient patient;
+    private TreatmentEpisode episode1;
+    private TreatmentEpisode episode2;
+
+    @BeforeEach
+    void setUp() {
+        doctorUser = new User();
+        doctorUser.setId(1L);
+        doctorUser.setRole(Role.DOCTOR);
+
+        doctor = new Doctor();
+        doctor.setId(1L);
+        doctor.setUser(doctorUser);
+
+        patientUser = new User();
+        patientUser.setId(2L);
+        patientUser.setRole(Role.PATIENT);
+
+        patient = new Patient();
+        patient.setId(1L);
+        patient.setUser(patientUser);
+
+        episode1 = new TreatmentEpisode();
+        episode1.setId(1L);
+        episode1.setDoctor(doctorUser);
+        episode1.setPatient(patient);
+        episode1.setStatus(EpisodeStatus.ACTIVE);
+        episode1.setConditionCategory("Cardiology");
+        episode1.setStartDate(LocalDateTime.now().minusDays(30));
+
+        episode2 = new TreatmentEpisode();
+        episode2.setId(2L);
+        episode2.setDoctor(doctorUser);
+        episode2.setPatient(patient);
+        episode2.setStatus(EpisodeStatus.RESOLVED);
+        episode2.setConditionCategory("Cardiology");
+        episode2.setStartDate(LocalDateTime.now().minusDays(60));
+        episode2.setEndDate(LocalDateTime.now().minusDays(10));
+    }
+
+    @Test
+    void getEpisodeSummaryAnalytics_returnsCorrectCounts() {
+        LocalDateTime from = LocalDateTime.now().minusDays(90);
+        LocalDateTime to = LocalDateTime.now();
+        List<TreatmentEpisode> episodes = Arrays.asList(episode1, episode2);
+
+        when(episodeRepo.findByStartDateBetween(from, to)).thenReturn(episodes);
+        when(recordRepo.countByEpisodeId(1L)).thenReturn(3L);
+        when(recordRepo.countByEpisodeId(2L)).thenReturn(2L);
+
+        var result = analyticsService.getEpisodeSummaryAnalytics(from, to);
+
+        assertNotNull(result);
+        assertEquals(2, result.getTotalEpisodes());
+        assertEquals(1, result.getActiveEpisodes());
+        assertEquals(1, result.getResolvedEpisodes());
+        assertEquals(0, result.getChronicEpisodes());
+        assertEquals("Cardiology", result.getMostCommonCategory());
+        assertEquals(2, result.getEpisodes().size());
+        assertEquals(3L, result.getEpisodes().get(0).getLinkedRecordCount());
+    }
+
+    @Test
+    void getEpisodeSummaryAnalytics_emptyList_returnsZeroes() {
+        LocalDateTime from = LocalDateTime.now().minusDays(30);
+        LocalDateTime to = LocalDateTime.now();
+
+        when(episodeRepo.findByStartDateBetween(from, to)).thenReturn(Collections.emptyList());
+
+        var result = analyticsService.getEpisodeSummaryAnalytics(from, to);
+
+        assertNotNull(result);
+        assertEquals(0, result.getTotalEpisodes());
+        assertEquals(0, result.getActiveEpisodes());
+        assertNull(result.getMostCommonCategory());
+    }
+
+    @Test
+    void getPatientAnalytics_returnsCorrectData() {
+        Long patientId = 1L;
+        List<TreatmentEpisode> episodes = Collections.singletonList(episode1);
+
+        when(episodeRepo.findByPatientId(patientId)).thenReturn(episodes);
+        when(recordRepo.countByPatientId(patientId)).thenReturn(5L);
+        when(recordRepo.countByPatientIdAndRecordType(patientId, com.healthcare.enums.MedicalRecordType.LAB_RESULT)).thenReturn(2L);
+        when(recordRepo.countByPatientIdAndRecordType(patientId, com.healthcare.enums.MedicalRecordType.IMAGING_REPORT)).thenReturn(1L);
+
+        var result = analyticsService.getPatientAnalytics(patientId);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalEpisodes());
+        assertEquals(1, result.getActiveEpisodes());
+        assertEquals(5L, result.getTotalMedicalRecords());
+        assertEquals(2L, result.getLabResultCount());
+        assertEquals(1L, result.getImagingCount());
+        assertEquals(1, result.getEpisodes().size());
+    }
+}

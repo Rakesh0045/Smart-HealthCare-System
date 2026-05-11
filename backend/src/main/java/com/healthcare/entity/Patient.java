@@ -42,6 +42,9 @@ public class Patient {
     @Column(name = "medical_history", columnDefinition = "TEXT")
     private String medicalHistory;
 
+    @OneToOne(mappedBy = "patient", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private MedicalHistory structuredHistory;
+
     @Column(length = 10)
     private String gender;
 }

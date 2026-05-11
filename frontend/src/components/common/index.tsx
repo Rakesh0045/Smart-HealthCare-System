@@ -1,4 +1,5 @@
 import { LucideIcon } from 'lucide-react'
+export { MarkdownRenderer } from './MarkdownRenderer'
 
 // ─── Stat Card ────────────────────────────────────────────────────────────────
 interface StatCardProps {
