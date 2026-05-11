@@ -1,0 +1,13 @@
+# Environment files
+.env
+backend/.env
+frontend/.env
+
+# Build outputs and dependencies
+backend/target/
+frontend/node_modules/
+frontend/dist/
+
+# IDE and OS noise
+.idea/
+.DS_Store

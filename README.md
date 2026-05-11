@@ -40,22 +40,18 @@ Or manually run schema.sql in MySQL Workbench / DBeaver.
 
 ### Step 2 — Backend (Spring Boot)
 
-**Option A: Using environment variables (recommended)**
+**Option A: Using the backend `.env` file (recommended)**
 ```bash
 cd backend
 
-export DB_USERNAME=root
-export DB_PASSWORD=yourpassword
-export GEMINI_API_KEY=your_gemini_api_key_here
-export RAZORPAY_KEY_ID=rzp_test_xxxxxxxxx
-export RAZORPAY_KEY_SECRET=your_razorpay_secret
-export NOTIFICATION_MODE=dev
+copy .env.example .env
+
+# fill in .env with your real local values
 
 mvn spring-boot:run
 ```
 
-**Option B: Edit application.yml directly**
-Edit `src/main/resources/application.yml` and set values under each `${...}` placeholder.
+The backend loads `backend/.env` automatically through `application.yml`.
 
 Backend runs on: **http://localhost:8081**
 Swagger UI: **http://localhost:8081/swagger-ui.html**
@@ -66,6 +62,9 @@ Swagger UI: **http://localhost:8081/swagger-ui.html**
 
 ```bash
 cd frontend
+
+copy .env.example .env
+
 npm install
 npm run dev
 ```

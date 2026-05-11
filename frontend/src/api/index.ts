@@ -2,8 +2,16 @@ import axios from 'axios'
 import toast from 'react-hot-toast'
 import { useAuthStore } from '../store/authStore'
 
+const API_BASE_URL = (() => {
+  const configuredBaseUrl = import.meta.env.VITE_API_URL?.trim()
+  if (!configuredBaseUrl) return '/api'
+
+  const normalizedBaseUrl = configuredBaseUrl.replace(/\/$/, '')
+  return normalizedBaseUrl.endsWith('/api') ? normalizedBaseUrl : `${normalizedBaseUrl}/api`
+})()
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: API_BASE_URL,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })
@@ -53,7 +61,7 @@ const refreshAccessToken = async () => {
     throw new Error('Missing refresh token')
   }
 
-  const { data } = await axios.post('/api/auth/refresh', null, {
+  const { data } = await api.post('/auth/refresh', null, {
     params: { refreshToken: token },
   })
 
