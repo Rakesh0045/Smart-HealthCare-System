@@ -6,7 +6,7 @@
 
 <br/><br/>
 
-<h1> 🏥 MediCare — Smart Healthcare Management System</h1>
+<h1> 🏥 MediCare: Smart Healthcare Management System</h1>
 
 <p>
   <strong>🩺 A full-stack digital health platform connecting Patients, Doctors & Administrators</strong><br/>
@@ -35,8 +35,8 @@
   - [👤 For Patients](#-for-patients)
   - [👨‍⚕️ For Doctors](#-for-doctors)
   - [🛡️ For Administrators](#️-for-administrators)
-- [🌟 Unique Highlights](#-unique-highlights)
-- [📸 Screenshots](#-screenshots)
+- [🌟 Special Features Deep Dive](#-special-features-deep-dive)
+- [📸 Full Screenshots Gallery](#-full-screenshots-gallery)
 - [🏗️ System Architecture](#️-system-architecture)
 - [⚙️ Technical Implementation](#️-technical-implementation)
   - [🏛️ Architecture Overview](#️-architecture-overview)
@@ -59,7 +59,7 @@
 
 ## ✨ Overview
 
-MediCare is a modern, role-based healthcare management platform designed to streamline the **entire patient journey** — from symptom checking and appointment booking to treatment tracking, AI-assisted consultations, and automated medicine reminders. 🏥
+MediCare is a modern, role-based healthcare management platform designed to streamline the **entire patient journey**, from symptom checking and appointment booking to treatment tracking, AI-assisted consultations, and automated medicine reminders. 🏥
 
 Built with enterprise-grade security 🔐, real-time notifications 📧, and intelligent AI integration 🤖, it serves three distinct user personas:
 
@@ -107,13 +107,13 @@ Built with enterprise-grade security 🔐, real-time notifications 📧, and int
 
 ---
 
-## 🌟 Special Features — Deep Dive
+## 🌟 Special Features Deep Dive
 
 MediCare isn't just another appointment booking app. These are the **signature innovations** that set it apart from conventional healthcare platforms.
 
 ---
 
-### 📂 1. Treatment Episode Folders — Contextual Care Continuity
+### 📂 1. Treatment Episode Folders: Contextual Care Continuity
 
 <div align="center">
 
@@ -121,11 +121,11 @@ MediCare isn't just another appointment booking app. These are the **signature i
 <tr>
 <td align="center" width="50%">
   <img src="screenshots/patient-treatment-episode.png" width="100%" style="border-radius: 12px;" /><br/>
-  <sub>📂 Patient View — Treatment Episode Folder</sub>
+  <sub>📂 Patient View: Treatment Episode Folder</sub>
 </td>
 <td align="center" width="50%">
   <img src="screenshots/doctor-patient-medical-history.png" width="100%" style="border-radius: 12px;" /><br/>
-  <sub>👨‍⚕️ Doctor View — Complete Patient Context</sub>
+  <sub>👨‍⚕️ Doctor View: Complete Patient Context</sub>
 </td>
 </tr>
 </table>
@@ -140,7 +140,7 @@ MediCare isn't just another appointment booking app. These are the **signature i
 - 🏷️ When a patient visits a doctor for a condition (e.g., "Diabetes Type 2"), a Treatment Episode is auto-created
 - 📝 Every follow-up, prescription refill, lab result, and doctor's note gets appended to that episode
 - 🔍 Both patient and doctor can open the episode and see the **complete chronological story** of that condition
-- 📊 No more scrolling through scattered records — everything is contextual and grouped
+- 📊 No more scrolling through scattered records; everything is contextual and grouped
 
 **Benefits:**
 - 👨‍⚕️ Doctors get **full clinical context** before every follow-up
@@ -149,7 +149,7 @@ MediCare isn't just another appointment booking app. These are the **signature i
 
 ---
 
-### 💊 2. Smart Medicine Reminders — Never Miss a Dose
+### 💊 2. Smart Medicine Reminders: Never Miss a Dose
 
 <div align="center">
 
@@ -174,19 +174,19 @@ MediCare isn't just another appointment booking app. These are the **signature i
 
 **How it works:**
 - 📝 When a doctor writes a prescription, the system auto-generates a reminder schedule
-- ⏰ Reminders are **dose-specific** — "Take 1 tablet of Amoxicillin 500mg after breakfast"
+- ⏰ Reminders are **dose-specific**, such as "Take 1 tablet of Amoxicillin 500mg after breakfast"
 - 🔔 Notifications appear in-app and can be synced via email
 - 📅 Smart tracking shows which doses were taken and which were missed
 - 🏥 When a prescription expires or a treatment episode closes, reminders auto-stop
 
 **Benefits:**
-- 💯 **Context-aware** — reminders know the drug name, dosage, and reason
-- 🔄 **Auto-managed** — no manual setup; reminders generate from prescriptions
-- 📊 **Adherence tracking** — patients and doctors can see medication compliance over time
+- 💯 **Context-aware:** reminders know the drug name, dosage, and reason
+- 🔄 **Auto-managed:** no manual setup; reminders generate from prescriptions
+- 📊 **Adherence tracking:** patients and doctors can see medication compliance over time
 
 ---
 
-### 🤖 3. AI Symptom Checker — Your First Line of Insight
+### 🤖 3. AI Symptom Checker: Your First Line of Insight
 
 <div align="center">
 
@@ -214,7 +214,7 @@ MediCare isn't just another appointment booking app. These are the **signature i
 - 🤖 Gemini AI analyzes the input and returns a structured response with:
   - 🔍 **Possible causes** (with confidence levels)
   - ⚠️ **Red flags** that require immediate medical attention
-  - 🏥 **Recommended next steps** — whether to book a specialist, rest, or visit ER
+  - 🏥 **Recommended next steps:** whether to book a specialist, rest, or visit ER
   - 💊 **General self-care advice** (non-prescriptive)
 - 📋 The AI also suggests **which specialist** to book based on the symptoms
 
@@ -225,11 +225,11 @@ MediCare isn't just another appointment booking app. These are the **signature i
 
 ---
 
-### 💬 4. Dual AI Chatbots — One for Patients, One for Doctors
+### 💬 4. Dual AI Chatbots: One for Patients, One for Doctors
 
 MediCare features **two distinct AI assistants**, each tailored to their user's needs and context.
 
-#### 🧑‍⚕️ Patient AI Chatbot — Your Health Companion
+#### 🧑‍⚕️ Patient AI Chatbot: Your Health Companion
 
 <div align="center">
 
@@ -250,12 +250,12 @@ MediCare features **two distinct AI assistants**, each tailored to their user's 
 
 **What it does:**
 - 💬 Answers general health questions in plain language
-- 📜 **Reads your medical history** — when asked about your condition, it references your actual Treatment Episodes and prescriptions
+- 📜 **Reads your medical history:** when asked about your condition, it references your actual Treatment Episodes and prescriptions
 - 💊 Explains what your prescriptions do, possible side effects, and interactions
 - 🥗 Suggests lifestyle adjustments based on your diagnosed conditions
 - 🩺 Prepares you for appointments by suggesting questions to ask your doctor
 
-#### 👨‍⚕️ Doctor AI Chatbot — Clinical Decision Support
+#### 👨‍⚕️ Doctor AI Chatbot: Clinical Decision Support
 
 <div align="center">
 
@@ -285,7 +285,7 @@ MediCare features **two distinct AI assistants**, each tailored to their user's 
 
 ---
 
-### 🥗 5. AI Lifestyle Recommendations — Personalized Wellness
+### 🥗 5. AI Lifestyle Recommendations: Personalized Wellness
 
 <div align="center">
 
@@ -297,7 +297,7 @@ MediCare features **two distinct AI assistants**, each tailored to their user's 
 </td>
 <td align="center" width="50%">
   <img src="screenshots/patient-ai-lifestyle-recommendations.png" width="100%" style="border-radius: 12px;" /><br/>
-  <sub>📋 Patient View — Diet & Exercise Suggestions</sub>
+  <sub>📋 Patient View: Diet & Exercise Suggestions</sub>
 </td>
 </tr>
 </table>
@@ -311,21 +311,21 @@ MediCare features **two distinct AI assistants**, each tailored to their user's 
 **How it works:**
 - 🧬 The AI reads the patient's **Treatment Episodes**, **active prescriptions**, and **diagnosed conditions**
 - 🥗 It generates personalized recommendations across:
-  - **Diet** — foods to eat, foods to avoid based on conditions (e.g., low sodium for hypertension)
-  - **Exercise** — safe activity levels considering medications and cardiac history
-  - **Sleep** — hygiene tips tailored to stress/medication profiles
-  - **Mental Wellness** — stress management for chronic illness patients
+  - **Diet:** foods to eat and foods to avoid based on conditions, such as low sodium for hypertension
+  - **Exercise:** safe activity levels considering medications and cardiac history
+  - **Sleep:** hygiene tips tailored to stress and medication profiles
+  - **Mental Wellness:** stress management for chronic illness patients
 - 📋 Recommendations are presented in a clean, actionable format with explanations
 - 🔄 As the patient's treatment episodes evolve, recommendations auto-update
 
 **Benefits:**
-- 🎯 **Truly personalized** — not cookie-cutter advice; it's based on *your* records
-- 🏥 **Medically informed** — considers drug interactions and condition contraindications
-- 📊 **Trackable** — patients can follow recommendations and report adherence back to doctors
+- 🎯 **Truly personalized:** not cookie-cutter advice; it is based on *your* records
+- 🏥 **Medically informed:** considers drug interactions and condition contraindications
+- 📊 **Trackable:** patients can follow recommendations and report adherence back to doctors
 
 ---
 
-### 📋 6. Digital Medical Records — Secure, Shared & Structured
+### 📋 6. Digital Medical Records: Secure, Shared & Structured
 
 <div align="center">
 
@@ -333,11 +333,11 @@ MediCare features **two distinct AI assistants**, each tailored to their user's 
 <tr>
 <td align="center" width="50%">
   <img src="screenshots/patient-medical-history.png" width="100%" style="border-radius: 12px;" /><br/>
-  <sub>👤 Patient View — Complete Medical History</sub>
+  <sub>👤 Patient View: Complete Medical History</sub>
 </td>
 <td align="center" width="50%">
   <img src="screenshots/doctor-medical-records.png" width="100%" style="border-radius: 12px;" /><br/>
-  <sub>👨‍⚕️ Doctor View — Structured Medical Records</sub>
+  <sub>👨‍⚕️ Doctor View: Structured Medical Records</sub>
 </td>
 </tr>
 </table>
@@ -352,17 +352,17 @@ MediCare features **two distinct AI assistants**, each tailored to their user's 
 - 📝 Doctors create structured medical records during or after appointments
 - 💊 Prescriptions are digitized with drug name, dosage, frequency, and duration
 - 🔬 Lab results and diagnoses are linked to the relevant Treatment Episode
-- 🔐 **Role-based access** — patients see their own records; doctors see records of their patients
+- 🔐 **Role-based access:** patients see their own records; doctors see records of their patients
 - 📄 Everything is exportable as a **PDF medical report** for external use
 
 **Benefits:**
-- 📊 **No more "What was my diagnosis?"** — patients have lifetime access to their records
-- ⏱️ **Faster consultations** — doctors review history in seconds before the patient arrives
-- 🏥 **Continuity across doctors** — a specialist can see the full picture from the primary care physician
+- 📊 **No more "What was my diagnosis?":** patients have lifetime access to their records
+- ⏱️ **Faster consultations:** doctors review history in seconds before the patient arrives
+- 🏥 **Continuity across doctors:** a specialist can see the full picture from the primary care physician
 
 ---
 
-### 📄 7. Dynamic PDF Generation — Instant Digital Documents
+### 📄 7. Dynamic PDF Generation: Instant Digital Documents
 
 <div align="center">
 
@@ -386,15 +386,15 @@ MediCare features **two distinct AI assistants**, each tailored to their user's 
 > **The Solution:** MediCare uses **iText7** to generate professional, printable PDFs instantly.
 
 **Generated documents include:**
-- 🎫 **Appointment Slips** — with QR code, doctor details, date/time, and clinic address
-- 📄 **Prescriptions** — formatted like a real medical prescription with doctor's digital signature area
-- 📋 **Medical Reports** — complete treatment summaries for insurance or referrals
-- 💳 **Payment Receipts** — Razorpay-integrated with transaction ID and breakdown
+- 🎫 **Appointment Slips:** include QR code, doctor details, date/time, and clinic address
+- 📄 **Prescriptions:** formatted like a real medical prescription with doctor's digital signature area
+- 📋 **Medical Reports:** complete treatment summaries for insurance or referrals
+- 💳 **Payment Receipts:** Razorpay-integrated with transaction ID and breakdown
 
 **Benefits:**
-- 🖨️ **Print-ready** — professional formatting suitable for physical filing
-- 📧 **Email-attachable** — automatically sent to patients after generation
-- 🔒 **Tamper-evident** — structured layout makes forgery obvious
+- 🖨️ **Print-ready:** professional formatting suitable for physical filing
+- 📧 **Email-attachable:** automatically sent to patients after generation
+- 🔒 **Tamper-evident:** structured layout makes forgery obvious
 
 ---
 
@@ -606,47 +606,38 @@ MediCare features **two distinct AI assistants**, each tailored to their user's 
 
 ## 🏗️ System Architecture
 
-MediCare follows a **modern three-tier architecture** with clean separation of concerns, stateless JWT authentication, and microservice-ready modular design.
+MediCare follows a **modern three-tier architecture** with clean separation of concerns, stateless JWT authentication, and modular services that are easy to extend.
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                                  🎨 PRESENTATION LAYER                                │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │
-│  │  🏠 Landing  │  │  👤 Patient  │  │👨‍⚕️ Doctor    │  │ 🛡️ Admin     │            │
-│  │     Page     │  │    Portal    │  │   Portal     │  │   Panel      │            │
-│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘            │
-│         │                 │                  │                │                       │
-│         └─────────────────┴──────────────────┴────────────────┘                       │
-│                                  React 18 + Vite + Tailwind                           │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-                                          │ HTTPS / REST
-                                          ▼
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                                   ⚙️ APPLICATION LAYER                                │
-│                                                                                       │
-│   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐                │
-│   │ 🔐 Auth Service │    │ 📅 Booking Svc  │    │ 🤖 AI Service   │                │
-│   │  JWT + RBAC     │    │  Slots + Appts  │    │ Gemini API      │                │
-│   └─────────────────┘    └─────────────────┘    └─────────────────┘                │
-│   ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐                │
-│   │ 📝 Records Svc  │    │ 💳 Payment Svc  │    │ 📧 Notify Svc   │                │
-│   │ Prescriptions   │    │ Razorpay        │    │ SMTP + Twilio   │                │
-│   └─────────────────┘    └─────────────────┘    └─────────────────┘                │
-│                                                                                       │
-│                         Spring Boot 3.2 + Spring Security                             │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-                                          │
-                        ┌─────────────────┼─────────────────┐
-                        ▼                 ▼                 ▼
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                                    🗄️ DATA LAYER                                    │
-│                                                                                       │
-│   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐       │
-│   │    MySQL     │   │   iText7     │   │  Razorpay    │   │   Gemini     │       │
-│   │  Relational  │   │   PDF Gen    │   │   Gateway    │   │    AI API    │       │
-│   └──────────────┘   └──────────────┘   └──────────────┘   └──────────────┘       │
-│                                                                                       │
-└─────────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Presentation["Presentation Layer: React 18 + Vite + Tailwind"]
+        Landing["Landing Page"]
+        PatientPortal["Patient Portal"]
+        DoctorPortal["Doctor Portal"]
+        AdminPanel["Admin Panel"]
+    end
+
+    subgraph Application["Application Layer: Spring Boot 3.2 + Spring Security"]
+        Auth["Auth Service<br/>JWT + RBAC"]
+        Booking["Booking Service<br/>Slots + Appointments"]
+        AI["AI Service<br/>Gemini Integration"]
+        Records["Records Service<br/>Medical Records + Prescriptions"]
+        Payments["Payment Service<br/>Razorpay"]
+        Notify["Notification Service<br/>SMTP + Twilio"]
+    end
+
+    subgraph Data["Data and External Services"]
+        MySQL["MySQL Database"]
+        PDF["iText7 PDF Generator"]
+        Razorpay["Razorpay Gateway"]
+        Gemini["Gemini AI API"]
+    end
+
+    Presentation -->|"HTTPS / REST"| Application
+    Application --> MySQL
+    Application --> PDF
+    Payments --> Razorpay
+    AI --> Gemini
 ```
 
 ---
@@ -655,94 +646,116 @@ MediCare follows a **modern three-tier architecture** with clean separation of c
 
 ### 🏛️ Architecture Overview
 
-```
-     🌐 Browser
-        │
-        ▼
-┌──────────────┐      ┌──────────────────────────┐      ┌──────────────┐
-│   React UI   │◄────►│    Spring Boot REST      │◄────►│    MySQL     │
-│   (Vite)     │ JWT  │      API Server          │ JPA  │   Database   │
-│  TypeScript  │      │   Port: 8081             │      │   Port: 3306 │
-└──────────────┘      └──────────┬───────────────┘      └──────────────┘
-                                 │
-            ┌────────────────────┼────────────────────┐
-            ▼                    ▼                    ▼
-    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-    │ Gemini AI    │    │  Razorpay    │    │  SMTP Server │
-    │ (Symptom,    │    │  (Payments)  │    │  (Emails)    │
-    │  Lifestyle)  │    │              │    │              │
-    └──────────────┘    └──────────────┘    └──────────────┘
+```mermaid
+flowchart LR
+    Browser["Browser"]
+    React["React UI<br/>Vite + TypeScript"]
+    API["Spring Boot REST API<br/>Port 8081"]
+    DB["MySQL Database<br/>Port 3306"]
+    Gemini["Gemini AI<br/>Symptoms + Lifestyle"]
+    Razorpay["Razorpay<br/>Payments"]
+    SMTP["SMTP Server<br/>Emails"]
+
+    Browser --> React
+    React <-->|"JWT + REST"| API
+    API <-->|"JPA"| DB
+    API --> Gemini
+    API --> Razorpay
+    API --> SMTP
 ```
 
 ### 🔐 Authentication Flow
 
-```
-┌─────────┐                    ┌──────────────┐                    ┌─────────┐
-│  User   │───(1) Credentials──►│   Backend    │───(2) Validate──►│  MySQL  │
-│ Browser │                    │  Auth Filter │                    │  DB     │
-│         │◄──(4) JWT Token────│              │◄──(3) User Data────│         │
-└─────────┘                    └──────────────┘                    └─────────┘
-      │
-      │  Subsequent Requests
-      ▼
-┌─────────┐     ┌──────────────┐     ┌──────────────┐     ┌─────────┐
-│ Request │────►│ JWT Filter   │────►│ Role Check   │────►│ Controller│
-│ + Bearer│     │ Validate     │     │ (RBAC)       │     │ Execute  │
-│  Token  │◄────│ Token        │◄────│ Allow/Deny   │◄────│ Return   │
-└─────────┘     └──────────────┘     └──────────────┘     └─────────┘
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser
+    participant Auth as Backend Auth Filter
+    participant DB as MySQL Database
+    participant API as Protected Controller
+
+    User->>Browser: Enter credentials
+    Browser->>Auth: Login request
+    Auth->>DB: Validate user
+    DB-->>Auth: User data and roles
+    Auth-->>Browser: JWT token
+    Browser->>API: Request with Bearer token
+    API->>Auth: Validate token and role
+    Auth-->>API: Allow or deny
+    API-->>Browser: Protected response
 ```
 
 ### 📅 Appointment Booking Workflow
 
-```
-👤 Patient                        ⚙️ Backend                         👨‍⚕️ Doctor
-  │                                │                                   │
-  │──(1) Browse Doctors───────────►│                                   │
-  │◄──Doctor List + Slots─────────│                                   │
-  │                                │                                   │
-  │──(2) Select Slot & Book────────►│                                   │
-  │                                │──(3) Lock Slot in DB─────────────►│
-  │                                │◄──Slot Confirmed──────────────────│
-  │                                │                                   │
-  │◄──(4) Booking Confirmed───────│                                   │
-  │                                │                                   │
-  │──(5) Pay via Razorpay─────────►│                                   │
-  │                                │──(6) Verify Payment──────────────►│
-  │◄──(7) Payment Success + PDF───│◄──Payment Verified────────────────│
-  │                                │                                   │
-  │◄──(8) Email Confirmation──────│──(9) Send Email─────────────────►│
-  │                                │                                   │
+```mermaid
+sequenceDiagram
+    actor Patient
+    participant Frontend
+    participant Backend
+    participant Doctor
+    participant Payment as Razorpay
+    participant Email as Email Service
+
+    Patient->>Frontend: Browse doctors
+    Frontend->>Backend: Request doctors and slots
+    Backend-->>Frontend: Doctor list with available slots
+    Patient->>Frontend: Select slot and book
+    Frontend->>Backend: Create appointment
+    Backend->>Doctor: Lock selected slot
+    Doctor-->>Backend: Slot confirmed
+    Backend-->>Frontend: Booking confirmed
+    Patient->>Payment: Pay via Razorpay checkout
+    Payment-->>Backend: Payment verification data
+    Backend-->>Frontend: Payment success with PDF slip
+    Backend->>Email: Send confirmation email
 ```
 
 ### 🤖 AI Chatbot Workflow
 
-```
-┌──────────┐                    ┌──────────────┐                    ┌──────────┐
-│  User    │───(1) Chat Query──►│   Backend    │───(2) Prompt────►│  Gemini  │
-│ (Patient │                    │   Service    │    Engineering    │   AI     │
-│  /Doctor)│◄──(4) Response────│              │◄──(3) AI Reply───│   API    │
-└──────────┘                    └──────────────┘                    └──────────┘
+```mermaid
+sequenceDiagram
+    actor User as Patient or Doctor
+    participant UI as Chat Interface
+    participant Backend as Backend AI Service
+    participant Records as Medical Records
+    participant Gemini as Gemini AI API
 
-💡 Context-Aware Prompts:
-  • Patient: "Based on your medical history [Episode X], here are lifestyle tips..."
-  • Doctor: "For [Drug A] + [Drug B] combination, watch for these interactions..."
+    User->>UI: Ask a health question
+    UI->>Backend: Send chat query
+    Backend->>Records: Add role-specific medical context
+    Records-->>Backend: Relevant episodes, prescriptions, and notes
+    Backend->>Gemini: Send engineered prompt
+    Gemini-->>Backend: AI response
+    Backend-->>UI: Safe, contextual reply
 ```
+
+**Context-aware prompt examples:**
+- **Patient:** "Based on your medical history, here are lifestyle tips for this treatment episode..."
+- **Doctor:** "For this medication combination, watch for these interactions..."
 
 ### 💳 Payment Flow
 
-```
-👤 Patient                    🎨 Frontend                     ⚙️ Backend                     💳 Razorpay
-  │                            │                               │                               │
-  │──(1) Click Pay────────────►│                               │                               │
-  │                            │──(2) Create Order────────────►│                               │
-  │                            │◄──Order ID + Key──────────────│                               │
-  │                            │                               │                               │
-  │◄──(3) Razorpay Checkout───│                               │                               │
-  │──(4) Payment Complete────►│                               │                               │
-  │                            │──(5) Signature Verify────────►│──(6) Verify with Razorpay──►│
-  │                            │                               │◄──Payment Verified────────────│
-  │                            │◄──(7) Update + PDF Receipt───│                               │
-  │◄──(8) Receipt + Email─────│                               │                               │
+```mermaid
+sequenceDiagram
+    actor Patient
+    participant Frontend
+    participant Backend
+    participant Razorpay
+    participant PDF as PDF Service
+    participant Email as Email Service
+
+    Patient->>Frontend: Click Pay
+    Frontend->>Backend: Create Razorpay order
+    Backend->>Razorpay: Generate order
+    Razorpay-->>Backend: Order ID and key
+    Backend-->>Frontend: Checkout config
+    Frontend-->>Patient: Open Razorpay checkout
+    Patient->>Razorpay: Complete payment
+    Razorpay-->>Backend: Payment signature
+    Backend->>Razorpay: Verify signature
+    Backend->>PDF: Generate receipt
+    Backend->>Email: Send receipt
+    Backend-->>Frontend: Payment complete
 ```
 
 ### 🛠️ Tech Stack
@@ -779,50 +792,31 @@ MediCare follows a **modern three-tier architecture** with clean separation of c
 
 ### 🗄️ Database Design
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│     👤 Users    │────►│   👤 Patients   │     │ 👨‍⚕️  Doctors    │
-│  (Auth + Roles) │     │  (Profile Data) │     │ (Specialization) │
-└────────┬────────┘     └─────────────────┘     └─────────────────┘
-         │
-         │ One-to-Many
-         ▼
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│  📅 Appointments│◄────│ 📂 Treatment    │────►│ 📝 Medical      │
-│  (Status, Slots)│     │   Episodes      │     │   Records       │
-└────────┬────────┘     └─────────────────┘     └─────────────────┘
-         │                                              │
-         │                                              │
-         ▼                                              ▼
-┌─────────────────┐                           ┌─────────────────┐
-│   💳 Payments   │                           │ 💊 Prescriptions│
-│ (Razorpay IDs)  │                           │ (Dosage, Refill)│
-└─────────────────┘                           └────────┬────────┘
-                                                       │
-                                                       ▼
-                                              ┌─────────────────┐
-                                              │ ⏰ Medicine     │
-                                              │   Reminders     │
-                                              └─────────────────┘
-
-Key Relationships:
-• User ──► Patient / Doctor / Admin (role-based)
-• Patient ──► Appointments ──► Treatment Episodes ──► Medical Records ──► Prescriptions ──► Reminders
-• Doctor ──► Appointments (as provider)
-• Appointment ──► Payment (one-to-one)
+```mermaid
+erDiagram
+    USERS ||--o| PATIENTS : "has profile"
+    USERS ||--o| DOCTORS : "has profile"
+    PATIENTS ||--o{ APPOINTMENTS : "books"
+    DOCTORS ||--o{ APPOINTMENTS : "handles"
+    APPOINTMENTS ||--o| PAYMENTS : "generates"
+    PATIENTS ||--o{ TREATMENT_EPISODES : "owns"
+    TREATMENT_EPISODES ||--o{ MEDICAL_RECORDS : "contains"
+    MEDICAL_RECORDS ||--o{ PRESCRIPTIONS : "creates"
+    PRESCRIPTIONS ||--o{ MEDICINE_REMINDERS : "schedules"
+    USERS ||--o{ AUDIT_LOGS : "produces"
 ```
 
 The relational schema (`schema.sql`) includes:
 
-- **👤 Users** — Core identity with role-based differentiation (`PATIENT`, `DOCTOR`, `ADMIN`)
-- **👤 Patients & 👨‍⚕️ Doctors** — Extended profile entities with specialization, experience, and demographic data
-- **📅 Appointments** — Full booking lifecycle with status tracking (`PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`)
-- **📂 Treatment Episodes** — Logical grouping of all follow-up visits, records, and prescriptions for a single condition
-- **📝 Medical Records** — Structured clinical notes linked to episodes
-- **💊 Prescriptions** — Digitized medication orders with dosage, frequency & duration
-- **⏰ Medicine Reminders** — Scheduled dosage notifications tied to active prescriptions
-- **💳 Payments** — Transaction records synced with Razorpay order IDs
-- **📜 Audit Logs** — Immutable activity tracking for compliance & security
+- **👤 Users:** Core identity with role-based differentiation (`PATIENT`, `DOCTOR`, `ADMIN`)
+- **👤 Patients & 👨‍⚕️ Doctors:** Extended profile entities with specialization, experience, and demographic data
+- **📅 Appointments:** Full booking lifecycle with status tracking (`PENDING`, `CONFIRMED`, `COMPLETED`, `CANCELLED`)
+- **📂 Treatment Episodes:** Logical grouping of all follow-up visits, records, and prescriptions for a single condition
+- **📝 Medical Records:** Structured clinical notes linked to episodes
+- **💊 Prescriptions:** Digitized medication orders with dosage, frequency & duration
+- **⏰ Medicine Reminders:** Scheduled dosage notifications tied to active prescriptions
+- **💳 Payments:** Transaction records synced with Razorpay order IDs
+- **📜 Audit Logs:** Immutable activity tracking for compliance & security
 
 ---
 
@@ -856,7 +850,7 @@ chmod +x start-dev.sh
 The script will:
 1. ✅ Verify all required tools
 2. 🗄️ Create and seed the MySQL database
-3. 🔑 Prompt for API keys (Gemini, Razorpay — optional)
+3. 🔑 Prompt for API keys (Gemini and Razorpay are optional)
 4. 🚀 Start the Spring Boot backend on `http://localhost:8081`
 5. 🎨 Install frontend dependencies & start React dev server on `http://localhost:5173`
 
@@ -905,40 +899,26 @@ npm run dev
 
 ## 📁 Project Structure
 
-```
-🏥 healthcare-system-new/
-│
-├── ⚙️ backend/
-│   ├── src/main/java/com/healthcare/
-│   │   ├── 🚀 HealthcareApplication.java      # Entry point
-│   │   ├── 🔧 config/                         # Security, CORS, WebMvc config
-│   │   ├── 📡 controller/                     # REST controllers (API endpoints)
-│   │   ├── 📦 dto/                            # Request/Response DTOs
-│   │   ├── 🧩 entity/                         # JPA entities (DB models)
-│   │   ├── ⚠️ exception/                      # Global exception handling
-│   │   ├── 🔍 repository/                     # Spring Data JPA repositories
-│   │   ├── 🔐 security/                       # JWT filters & authentication
-│   │   └── ⚙️ service/                        # Business logic layer
-│   └── pom.xml                                # Maven dependencies
-│
-├── 🎨 frontend/
-│   ├── src/
-│   │   ├── 🧱 components/                     # Reusable UI components
-│   │   ├── 📄 pages/                          # Role-based page views
-│   │   ├── 🪝 hooks/                          # Custom React hooks
-│   │   ├── 🗃️ store/                          # Zustand state stores
-│   │   ├── 🔌 lib/                            # API clients & utilities
-│   │   └── 📐 types/                          # TypeScript type definitions
-│   ├── index.html
-│   └── package.json
-│
-├── 🗄️ database/
-│   └── schema.sql                             # Full database schema
-│
-├── 📸 screenshots/                            # All UI screenshots
-│
-└── 🚀 start-dev.sh                            # One-click startup script
-```
+| Area | Path | What it contains |
+|:---|:---|:---|
+| ⚙️ Backend | `backend/` | Spring Boot API, security, controllers, services, entities, repositories, and Maven config |
+| 🎨 Frontend | `frontend/` | React app with pages, reusable components, hooks, Zustand stores, API utilities, and TypeScript types |
+| 🗄️ Database | `database/schema.sql` | Full MySQL schema used to initialize the application database |
+| 📸 Screenshots | `screenshots/` | Product screenshots and GIFs used throughout this README |
+| 🚀 Startup Script | `start-dev.sh` | One-command local development launcher |
+
+**Backend package map**
+
+| Package | Purpose |
+|:---|:---|
+| `config/` | Security, CORS, and web configuration |
+| `controller/` | REST API endpoints |
+| `dto/` | Request and response payloads |
+| `entity/` | JPA database models |
+| `exception/` | Global exception handling |
+| `repository/` | Spring Data JPA repositories |
+| `security/` | JWT filters and authentication logic |
+| `service/` | Core business logic |
 
 ---
 
